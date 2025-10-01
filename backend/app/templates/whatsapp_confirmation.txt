@@ -1,0 +1,38 @@
+✨ *AGENDAMENTO CONFIRMADO!* ✨
+
+Olá *{{client_name}}*! 👋
+
+Seu agendamento foi confirmado com sucesso! 🎉
+
+━━━━━━━━━━━━━━━━━━━━
+📋 *DETALHES DO AGENDAMENTO*
+━━━━━━━━━━━━━━━━━━━━
+
+💼 *Serviço:* {{service_name}}
+👤 *Profissional:* {{professional_name}}
+📅 *Data:* {{date}}
+⏰ *Horário:* {{time}}
+💰 *Valor:* R$ {{price}}
+
+━━━━━━━━━━━━━━━━━━━━
+
+⚠️ *IMPORTANTE:*
+• Chegue com 10 minutos de antecedência
+• Cancelamentos com menos de 24h podem ter taxa
+• Traga um documento com foto
+
+━━━━━━━━━━━━━━━━━━━━
+
+📍 *Endereço:*
+{{company_address}}
+
+🗺️ Ver no mapa: {{maps_link}}
+
+━━━━━━━━━━━━━━━━━━━━
+
+Estamos ansiosos para te atender! 💜
+
+Dúvidas? Responda esta mensagem ou ligue:
+📞 {{company_phone}}
+
+_Agendamento SaaS - Seu tempo é precioso_ ⏰✨
