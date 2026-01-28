@@ -1,36 +1,70 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { userService } from '@/services/api'
-import { Plus, Edit, Trash2, Star, Clock, DollarSign, X, User as UserIcon, Mail, Phone, Award } from 'lucide-react'
+import { Plus, Edit, Trash2, Star, Clock, DollarSign, User as UserIcon, Mail, Phone, Award, Calendar, BarChart3, MapPin, Search } from 'lucide-react'
 import { toast } from 'sonner'
 import DashboardLayout from '@/components/DashboardLayout'
 import { usePermissions } from '@/hooks/usePermissions'
+import ProfessionalForm from '@/components/ProfessionalForm'
+import { toAbsoluteImageUrl } from '@/utils/apiUrl'
 
 export default function ProfessionalsPage() {
   const permissions = usePermissions()
   const [professionals, setProfessionals] = useState([])
   const [loading, setLoading] = useState(true)
   const [showModal, setShowModal] = useState(false)
-  const [editingId, setEditingId] = useState<number | null>(null)
-  const [formData, setFormData] = useState({
-    full_name: '',
-    email: '',
-    phone: '',
-    password: '',
-    specialties: '',
-    bio: '',
-    commission_rate: 40
+  const [selectedProfessional, setSelectedProfessional] = useState<any>(null)
+  const [pagination, setPagination] = useState({
+    page: 1,
+    limit: 12,
+    total: 0,
+    totalPages: 0
   })
+  const [searchTerm, setSearchTerm] = useState('')
+  const [isActiveFilter, setIsActiveFilter] = useState<boolean | null>(null)
+
+  const getFullImageUrl = (url: string | undefined | null): string | null => toAbsoluteImageUrl(url)
 
   useEffect(() => {
     loadProfessionals()
-  }, [])
+  }, [pagination.page, searchTerm, isActiveFilter])
 
   const loadProfessionals = async () => {
     try {
-      const response = await userService.getProfessionals()
+      setLoading(true)
+      const { professionalService } = await import('@/services/api')
+      
+      // Calculate skip for pagination
+      const skip = (pagination.page - 1) * pagination.limit
+      
+      // Build params object
+      const params: any = {
+        skip,
+        limit: pagination.limit
+      }
+      
+      // Add search term if exists
+      if (searchTerm.trim()) {
+        params.search = searchTerm.trim()
+      }
+      
+      // Add active filter if set
+      if (isActiveFilter !== null) {
+        params.is_active = isActiveFilter
+      }
+      
+      const response = await professionalService.list(params)
       setProfessionals(response.data)
+      
+      // Update pagination info if available
+      if (response.headers && response.headers['x-total-count']) {
+        const total = parseInt(response.headers['x-total-count'])
+        setPagination(prev => ({
+          ...prev,
+          total,
+          totalPages: Math.ceil(total / prev.limit)
+        }))
+      }
     } catch (error) {
       toast.error('Erro ao carregar profissionais')
     } finally {
@@ -38,51 +72,16 @@ export default function ProfessionalsPage() {
     }
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    try {
-      const data = {
-        ...formData,
-        specialties: formData.specialties.split(',').map(s => s.trim()),
-        role: 'professional',
-        company_id: 1
-      }
-
-      if (editingId) {
-        await userService.update(editingId, data)
-        toast.success('Profissional atualizado!')
-      } else {
-        // Criar novo profissional via endpoint de registro
-        toast.success('Profissional criado!')
-      }
-      
-      setShowModal(false)
-      setEditingId(null)
-      loadProfessionals()
-      resetForm()
-    } catch (error) {
-      toast.error('Erro ao salvar profissional')
-    }
-  }
-
   const handleEdit = (prof: any) => {
-    setFormData({
-      full_name: prof.full_name,
-      email: prof.email,
-      phone: prof.phone || '',
-      password: '',
-      specialties: prof.specialties?.join(', ') || '',
-      bio: prof.bio || '',
-      commission_rate: prof.commission_rate || 40
-    })
-    setEditingId(prof.id)
+    setSelectedProfessional(prof)
     setShowModal(true)
   }
 
   const handleDelete = async (id: number) => {
     if (confirm('Deseja realmente excluir este profissional?')) {
       try {
-        // Implementar delete
+        const { professionalService } = await import('@/services/api')
+        await professionalService.delete(id)
         toast.success('Profissional excluído!')
         loadProfessionals()
       } catch (error) {
@@ -91,16 +90,8 @@ export default function ProfessionalsPage() {
     }
   }
 
-  const resetForm = () => {
-    setFormData({
-      full_name: '',
-      email: '',
-      phone: '',
-      password: '',
-      specialties: '',
-      bio: '',
-      commission_rate: 40
-    })
+  const handleSuccess = () => {
+    loadProfessionals()
   }
 
   if (!permissions.canManageUsers()) {
@@ -126,8 +117,7 @@ export default function ProfessionalsPage() {
           </div>
           <button
             onClick={() => {
-              resetForm()
-              setEditingId(null)
+              setSelectedProfessional(null)
               setShowModal(true)
             }}
             className="bg-gradient-to-r from-primary to-purple-600 text-white px-6 py-3 rounded-lg flex items-center gap-2 hover:shadow-lg transition-all"
@@ -185,6 +175,65 @@ export default function ProfessionalsPage() {
           </div>
         </div>
 
+        {/* Search and Filters */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label className="block text-sm font-medium mb-2">Buscar</label>
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <input
+                  type="text"
+                  value={searchTerm}
+                  onChange={(e) => {
+                    setSearchTerm(e.target.value)
+                    setPagination(prev => ({ ...prev, page: 1 })) // Reset to first page
+                  }}
+                  placeholder="Nome ou email..."
+                  className="w-full pl-10 pr-4 py-2 border rounded-lg"
+                />
+              </div>
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium mb-2">Status</label>
+              <select
+                value={isActiveFilter === null ? 'all' : isActiveFilter ? 'active' : 'inactive'}
+                onChange={(e) => {
+                  const value = e.target.value
+                  setIsActiveFilter(value === 'all' ? null : value === 'active')
+                  setPagination(prev => ({ ...prev, page: 1 })) // Reset to first page
+                }}
+                className="w-full px-4 py-2 border rounded-lg"
+              >
+                <option value="all">Todos</option>
+                <option value="active">Ativos</option>
+                <option value="inactive">Inativos</option>
+              </select>
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium mb-2">Itens por página</label>
+              <select
+                value={pagination.limit}
+                onChange={(e) => {
+                  setPagination(prev => ({ 
+                    ...prev, 
+                    limit: parseInt(e.target.value),
+                    page: 1 // Reset to first page
+                  }))
+                }}
+                className="w-full px-4 py-2 border rounded-lg"
+              >
+                <option value={6}>6 itens</option>
+                <option value={12}>12 itens</option>
+                <option value={24}>24 itens</option>
+                <option value={48}>48 itens</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
         {/* Professionals Grid */}
         {loading ? (
           <div className="text-center py-12">
@@ -197,9 +246,17 @@ export default function ProfessionalsPage() {
                 {/* Header */}
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex items-center gap-3">
-                    <div className="w-16 h-16 bg-gradient-to-br from-primary to-purple-600 rounded-full flex items-center justify-center text-white text-2xl font-bold">
-                      {prof.full_name.charAt(0)}
-                    </div>
+                    {getFullImageUrl(prof.avatar_url) ? (
+                      <img
+                        src={getFullImageUrl(prof.avatar_url) as string}
+                        alt={prof.full_name}
+                        className="w-16 h-16 rounded-full object-cover border-2 border-primary"
+                      />
+                    ) : (
+                      <div className="w-16 h-16 bg-gradient-to-br from-primary to-purple-600 rounded-full flex items-center justify-center text-white text-2xl font-bold">
+                        {prof.full_name.charAt(0)}
+                      </div>
+                    )}
                     <div>
                       <h3 className="font-bold text-lg">{prof.full_name}</h3>
                       <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-semibold ${
@@ -221,6 +278,24 @@ export default function ProfessionalsPage() {
                     <div className="flex items-center gap-2 text-sm text-gray-600">
                       <Phone className="w-4 h-4" />
                       <span>{prof.phone}</span>
+                    </div>
+                  )}
+                  {prof.cpf_cnpj && (
+                    <div className="flex items-center gap-2 text-sm text-gray-600">
+                      <UserIcon className="w-4 h-4" />
+                      <span>CPF/CNPJ: {prof.cpf_cnpj}</span>
+                    </div>
+                  )}
+                  {prof.date_of_birth && (
+                    <div className="flex items-center gap-2 text-sm text-gray-600">
+                      <Calendar className="w-4 h-4" />
+                      <span>Nasc: {new Date(prof.date_of_birth).toLocaleDateString('pt-BR')}</span>
+                    </div>
+                  )}
+                  {(prof.city || prof.state) && (
+                    <div className="flex items-center gap-2 text-sm text-gray-600">
+                      <MapPin className="w-4 h-4" />
+                      <span>{prof.city}{prof.city && prof.state && ', '}{prof.state}</span>
                     </div>
                   )}
                 </div>
@@ -247,6 +322,29 @@ export default function ProfessionalsPage() {
                   </div>
                 )}
 
+                {/* Working Hours */}
+                {prof.working_hours && (
+                  <div className="mb-4">
+                    <div className="flex items-center gap-1 mb-2">
+                      <Clock className="w-4 h-4 text-primary" />
+                      <span className="text-xs font-semibold text-gray-700">Horários:</span>
+                    </div>
+                    <div className="text-xs text-gray-600">
+                      {Object.entries(prof.working_hours)
+                        .filter(([_, hours]: [string, any]) => hours.enabled)
+                        .slice(0, 3)
+                        .map(([day, hours]: [string, any]) => (
+                          <div key={day} className="capitalize">
+                            {day}: {hours.start} - {hours.end}
+                          </div>
+                        ))}
+                      {Object.entries(prof.working_hours).filter(([_, hours]: [string, any]) => hours.enabled).length > 3 && (
+                        <div className="text-gray-400">+ dias...</div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
                 {/* Bio */}
                 {prof.bio && (
                   <p className="text-sm text-gray-600 mb-4 line-clamp-2">{prof.bio}</p>
@@ -268,133 +366,105 @@ export default function ProfessionalsPage() {
                     Editar
                   </button>
                   <button
+                    onClick={() => {
+                      // Navigate to schedule or statistics
+                      window.location.href = `/professionals/${prof.id}/schedule`
+                    }}
+                    className="bg-green-50 text-green-700 px-4 py-2 rounded-lg hover:bg-green-100 transition-colors"
+                    title="Ver Agenda"
+                  >
+                    <Calendar className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => {
+                      // Navigate to statistics
+                      window.location.href = `/professionals/${prof.id}/statistics`
+                    }}
+                    className="bg-purple-50 text-purple-700 px-4 py-2 rounded-lg hover:bg-purple-100 transition-colors"
+                    title="Estatísticas"
+                  >
+                    <BarChart3 className="w-4 h-4" />
+                  </button>
+                  <button
                     onClick={() => handleDelete(prof.id)}
                     className="bg-red-50 text-red-700 px-4 py-2 rounded-lg hover:bg-red-100 transition-colors"
+                    title="Excluir"
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>
                 </div>
               </div>
-            ))}
-          </div>
+            </div>
+          ))}
+          
+          {/* Pagination */}
+          {pagination.totalPages > 1 && (
+            <div className="flex items-center justify-between mt-6 pt-6 border-t border-gray-100">
+              <div className="text-sm text-gray-600">
+                Mostrando {professionals.length} de {pagination.total} profissionais
+              </div>
+              
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setPagination(prev => ({ ...prev, page: Math.max(1, prev.page - 1) }))}
+                  disabled={pagination.page === 1}
+                  className="px-3 py-1 border rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                >
+                  Anterior
+                </button>
+                
+                <div className="flex items-center gap-1">
+                  {Array.from({ length: Math.min(5, pagination.totalPages) }, (_, i) => {
+                    let pageNum
+                    if (pagination.totalPages <= 5) {
+                      pageNum = i + 1
+                    } else if (pagination.page <= 3) {
+                      pageNum = i + 1
+                    } else if (pagination.page >= pagination.totalPages - 2) {
+                      pageNum = pagination.totalPages - 4 + i
+                    } else {
+                      pageNum = pagination.page - 2 + i
+                    }
+                    
+                    return (
+                      <button
+                        key={pageNum}
+                        onClick={() => setPagination(prev => ({ ...prev, page: pageNum }))}
+                        className={`w-8 h-8 rounded-lg text-sm ${
+                          pagination.page === pageNum
+                            ? 'bg-primary text-white'
+                            : 'border hover:bg-gray-50'
+                        }`}
+                      >
+                        {pageNum}
+                      </button>
+                    )
+                  })}
+                </div>
+                
+                <button
+                  onClick={() => setPagination(prev => ({ ...prev, page: Math.min(pagination.totalPages, prev.page + 1) }))}
+                  disabled={pagination.page === pagination.totalPages}
+                  className="px-3 py-1 border rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                >
+                  Próximo
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
         )}
-
+        
         {/* Modal */}
         {showModal && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-              <div className="sticky top-0 bg-white border-b border-gray-200 p-6">
-                <div className="flex justify-between items-center">
-                  <h2 className="text-2xl font-bold">
-                    {editingId ? 'Editar Profissional' : 'Novo Profissional'}
-                  </h2>
-                  <button onClick={() => setShowModal(false)} className="text-gray-500 hover:text-gray-700">
-                    <X className="w-6 h-6" />
-                  </button>
-                </div>
-              </div>
-
-              <form onSubmit={handleSubmit} className="p-6 space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium mb-2">Nome Completo *</label>
-                    <input
-                      type="text"
-                      value={formData.full_name}
-                      onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
-                      className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary"
-                      required
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium mb-2">Email *</label>
-                    <input
-                      type="email"
-                      value={formData.email}
-                      onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                      className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary"
-                      required
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium mb-2">Telefone</label>
-                    <input
-                      type="tel"
-                      value={formData.phone}
-                      onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                      className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary"
-                      placeholder="(11) 99999-9999"
-                    />
-                  </div>
-
-                  {!editingId && (
-                    <div>
-                      <label className="block text-sm font-medium mb-2">Senha *</label>
-                      <input
-                        type="password"
-                        value={formData.password}
-                        onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                        className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary"
-                        required={!editingId}
-                      />
-                    </div>
-                  )}
-
-                  <div>
-                    <label className="block text-sm font-medium mb-2">Comissão (%)</label>
-                    <input
-                      type="number"
-                      min="0"
-                      max="100"
-                      value={formData.commission_rate}
-                      onChange={(e) => setFormData({ ...formData, commission_rate: parseInt(e.target.value) })}
-                      className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium mb-2">Especialidades (separadas por vírgula)</label>
-                  <input
-                    type="text"
-                    value={formData.specialties}
-                    onChange={(e) => setFormData({ ...formData, specialties: e.target.value })}
-                    className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary"
-                    placeholder="Ex: Corte, Barba, Coloração"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium mb-2">Bio</label>
-                  <textarea
-                    value={formData.bio}
-                    onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
-                    className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary"
-                    rows={3}
-                    placeholder="Breve descrição sobre o profissional..."
-                  />
-                </div>
-
-                <div className="flex gap-3 pt-4">
-                  <button
-                    type="button"
-                    onClick={() => setShowModal(false)}
-                    className="flex-1 px-4 py-2 border rounded-lg hover:bg-gray-50"
-                  >
-                    Cancelar
-                  </button>
-                  <button
-                    type="submit"
-                    className="flex-1 bg-primary text-white px-4 py-2 rounded-lg hover:bg-primary/90"
-                  >
-                    {editingId ? 'Atualizar' : 'Criar'}
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
+          <ProfessionalForm
+            professional={selectedProfessional}
+            onClose={() => {
+              setShowModal(false)
+              setSelectedProfessional(null)
+            }}
+            onSuccess={handleSuccess}
+          />
         )}
       </div>
     </DashboardLayout>
