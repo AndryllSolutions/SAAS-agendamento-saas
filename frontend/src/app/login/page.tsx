@@ -307,6 +307,16 @@ export default function LoginPage() {
                 </a>
               </p>
             </div>
+
+            {/* Support Link */}
+            <div className="mt-4 text-center">
+              <p className="text-gray-600 dark:text-gray-400">
+                Precisa de ajuda?{' '}
+                <a href="/support" className="text-indigo-600 hover:text-indigo-700 font-semibold">
+                  Entre em contato com o suporte
+                </a>
+              </p>
+            </div>
           </div>
         </div>
       </div>
