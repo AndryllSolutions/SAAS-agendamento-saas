@@ -1,145 +1,151 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { dashboardService, appointmentService, paymentService } from '@/services/api'
-import { 
-  DollarSign, 
-  TrendingUp, 
-  TrendingDown,
-  Calendar,
-  Users,
-  Briefcase,
-  Download,
-  Filter,
-  ArrowUp,
-  ArrowDown,
-  PieChart as PieChartIcon
-} from 'lucide-react'
-import { toast } from 'sonner'
+import { useState } from 'react'
 import DashboardLayout from '@/components/DashboardLayout'
 import { usePermissions } from '@/hooks/usePermissions'
+import { 
+  FileText, 
+  TrendingDown, 
+  PieChart, 
+  TrendingUp, 
+  Users,
+  Briefcase,
+  DollarSign,
+  Calendar,
+  Star,
+  Target
+} from 'lucide-react'
+import Link from 'next/link'
+
+interface ReportCard {
+  id: string
+  title: string
+  description: string
+  icon: React.ReactNode
+  color: string
+  href: string
+  category: 'financeiro' | 'vendas' | 'clientes' | 'profissionais'
+  isFavorite?: boolean
+}
+
+const reports: ReportCard[] = [
+  // FINANCEIRO
+  {
+    id: 'despesas',
+    title: 'Despesas',
+    description: 'Análise completa de todas as despesas por categoria e origem',
+    icon: <TrendingDown className="w-6 h-6" />,
+    color: 'from-red-500 to-red-600',
+    href: '/reports/expenses',
+    category: 'financeiro'
+  },
+  {
+    id: 'resultados',
+    title: 'Resultados Financeiros',
+    description: 'DRE completo com receitas, despesas e lucro líquido',
+    icon: <PieChart className="w-6 h-6" />,
+    color: 'from-blue-500 to-blue-600',
+    href: '/reports/financial-results',
+    category: 'financeiro'
+  },
+  {
+    id: 'projecao',
+    title: 'Projeção de Faturamento',
+    description: 'Previsão de receita baseada em histórico e assinaturas',
+    icon: <TrendingUp className="w-6 h-6" />,
+    color: 'from-green-500 to-green-600',
+    href: '/reports/revenue-forecast',
+    category: 'financeiro'
+  },
+  {
+    id: 'comissoes',
+    title: 'Comissões',
+    description: 'Relatório de comissões por profissional',
+    icon: <DollarSign className="w-6 h-6" />,
+    color: 'from-orange-500 to-orange-600',
+    href: '/reports/commissions',
+    category: 'financeiro'
+  },
+  // VENDAS
+  {
+    id: 'por-servico',
+    title: 'Vendas por Serviço',
+    description: 'Performance e receita de cada serviço',
+    icon: <Briefcase className="w-6 h-6" />,
+    color: 'from-purple-500 to-purple-600',
+    href: '/reports/by-service',
+    category: 'vendas'
+  },
+  {
+    id: 'por-periodo',
+    title: 'Vendas por Período',
+    description: 'Análise temporal de vendas e agendamentos',
+    icon: <Calendar className="w-6 h-6" />,
+    color: 'from-indigo-500 to-indigo-600',
+    href: '/reports/by-period',
+    category: 'vendas'
+  },
+  // CLIENTES
+  {
+    id: 'top-clientes',
+    title: 'Top Clientes',
+    description: 'Clientes com maior faturamento e frequência',
+    icon: <Users className="w-6 h-6" />,
+    color: 'from-pink-500 to-pink-600',
+    href: '/reports/by-client',
+    category: 'clientes'
+  },
+  // PROFISSIONAIS
+  {
+    id: 'por-profissional',
+    title: 'Por Profissional',
+    description: 'Performance, faturamento e avaliações de cada profissional',
+    icon: <Star className="w-6 h-6" />,
+    color: 'from-yellow-500 to-yellow-600',
+    href: '/reports/by-professional',
+    category: 'profissionais'
+  },
+  {
+    id: 'metas',
+    title: 'Metas e Objetivos',
+    description: 'Acompanhamento de metas individuais e da empresa',
+    icon: <Target className="w-6 h-6" />,
+    color: 'from-teal-500 to-teal-600',
+    href: '/reports/goals',
+    category: 'profissionais'
+  }
+]
+
+const categories = [
+  { id: 'all', label: 'Todos', icon: <FileText /> },
+  { id: 'financeiro', label: 'Financeiro', icon: <DollarSign /> },
+  { id: 'vendas', label: 'Vendas', icon: <TrendingUp /> },
+  { id: 'clientes', label: 'Clientes', icon: <Users /> },
+  { id: 'profissionais', label: 'Profissionais', icon: <Star /> }
+]
 
 export default function ReportsPage() {
   const permissions = usePermissions()
-  const [loading, setLoading] = useState(true)
-  const [dateRange, setDateRange] = useState({
-    start_date: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-    end_date: new Date().toISOString().split('T')[0]
-  })
-  
-  const [financialData, setFinancialData] = useState({
-    totalRevenue: 0,
-    totalAppointments: 0,
-    averageTicket: 0,
-    totalCommissions: 0,
-    netRevenue: 0,
-    growthRate: 0,
-    topServices: [],
-    topProfessionals: [],
-    revenueByMonth: []
-  })
+  const [selectedCategory, setSelectedCategory] = useState<string>('all')
+  const [favorites, setFavorites] = useState<string[]>([])
 
-  useEffect(() => {
-    loadFinancialData()
-  }, [dateRange])
+  const filteredReports = selectedCategory === 'all' 
+    ? reports 
+    : reports.filter(r => r.category === selectedCategory)
 
-  const loadFinancialData = async () => {
-    setLoading(true)
-    try {
-      // Buscar dados do dashboard
-      const overviewRes = await dashboardService.getOverview({
-        start_date: dateRange.start_date,
-        end_date: dateRange.end_date
-      })
-      
-      const topServicesRes = await dashboardService.getTopServices({
-        start_date: dateRange.start_date,
-        end_date: dateRange.end_date,
-        limit: 10
-      })
-      
-      const topProfsRes = await dashboardService.getTopProfessionals({
-        start_date: dateRange.start_date,
-        end_date: dateRange.end_date,
-        limit: 10
-      })
-
-      const overview = overviewRes.data
-      
-      // Calcular métricas
-      const totalRevenue = overview?.revenue?.total || 0
-      const totalAppointments = overview?.appointments?.total || 0
-      const averageTicket = totalAppointments > 0 ? totalRevenue / totalAppointments : 0
-      
-      // Calcular comissões (média de 40%)
-      const totalCommissions = totalRevenue * 0.4
-      const netRevenue = totalRevenue - totalCommissions
-      
-      // Calcular crescimento (simulado - você pode implementar comparação com período anterior)
-      const growthRate = 12.5
-
-      setFinancialData({
-        totalRevenue,
-        totalAppointments,
-        averageTicket,
-        totalCommissions,
-        netRevenue,
-        growthRate,
-        topServices: topServicesRes.data || [],
-        topProfessionals: topProfsRes.data || [],
-        revenueByMonth: [] // Implementar depois
-      })
-    } catch (error) {
-      toast.error('Erro ao carregar dados financeiros')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const exportToCSV = () => {
-    const csvContent = [
-      ['Relatório Financeiro'],
-      ['Período', `${dateRange.start_date} até ${dateRange.end_date}`],
-      [''],
-      ['Métrica', 'Valor'],
-      ['Receita Total', `R$ ${financialData.totalRevenue.toFixed(2)}`],
-      ['Total de Agendamentos', financialData.totalAppointments],
-      ['Ticket Médio', `R$ ${financialData.averageTicket.toFixed(2)}`],
-      ['Total de Comissões', `R$ ${financialData.totalCommissions.toFixed(2)}`],
-      ['Receita Líquida', `R$ ${financialData.netRevenue.toFixed(2)}`],
-      [''],
-      ['Top Serviços'],
-      ['Serviço', 'Agendamentos', 'Receita'],
-      ...financialData.topServices.map((s: any) => [
-        s.service_name,
-        s.appointment_count,
-        `R$ ${s.total_revenue?.toFixed(2) || '0.00'}`
-      ]),
-      [''],
-      ['Top Profissionais'],
-      ['Profissional', 'Agendamentos', 'Receita', 'Avaliação'],
-      ...financialData.topProfessionals.map((p: any) => [
-        p.professional_name,
-        p.appointment_count,
-        `R$ ${p.total_revenue?.toFixed(2) || '0.00'}`,
-        p.average_rating?.toFixed(1) || 'N/A'
-      ])
-    ].map(row => row.join(',')).join('\n')
-
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
-    const link = document.createElement('a')
-    link.href = URL.createObjectURL(blob)
-    link.download = `relatorio-financeiro-${dateRange.start_date}-${dateRange.end_date}.csv`
-    link.click()
-    
-    toast.success('Relatório exportado!')
+  const toggleFavorite = (reportId: string) => {
+    setFavorites(prev => 
+      prev.includes(reportId) 
+        ? prev.filter(id => id !== reportId)
+        : [...prev, reportId]
+    )
   }
 
   if (!permissions.canManagePayments()) {
     return (
       <DashboardLayout>
         <div className="text-center py-12">
-          <p className="text-red-600">Você não tem permissão para acessar relatórios financeiros.</p>
+          <p className="text-red-600">Você não tem permissão para acessar relatórios.</p>
         </div>
       </DashboardLayout>
     )
@@ -149,238 +155,108 @@ export default function ReportsPage() {
     <DashboardLayout>
       <div className="space-y-6">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
-            <h1 className="text-3xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">
-              Relatórios Financeiros
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+            Relatórios
             </h1>
-            <p className="text-gray-600 mt-1">Análise completa de receitas e despesas</p>
-          </div>
-          
-          <button
-            onClick={exportToCSV}
-            className="bg-gradient-to-r from-green-600 to-emerald-600 text-white px-6 py-3 rounded-lg flex items-center gap-2 hover:shadow-lg transition-all"
-          >
-            <Download className="w-5 h-5" />
-            Exportar CSV
-          </button>
+          <p className="text-gray-600 mt-1">Análises completas do seu negócio</p>
         </div>
 
-        {/* Filtros de Data */}
+        {/* Categorias */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
-          <div className="flex flex-col sm:flex-row gap-4 items-end">
-            <div className="flex-1">
-              <label className="block text-sm font-medium mb-2">Data Inicial</label>
-              <input
-                type="date"
-                value={dateRange.start_date}
-                onChange={(e) => setDateRange({ ...dateRange, start_date: e.target.value })}
-                className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-green-500"
-              />
-            </div>
-            
-            <div className="flex-1">
-              <label className="block text-sm font-medium mb-2">Data Final</label>
-              <input
-                type="date"
-                value={dateRange.end_date}
-                onChange={(e) => setDateRange({ ...dateRange, end_date: e.target.value })}
-                className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-green-500"
-              />
-            </div>
-            
+          <div className="flex flex-wrap gap-2">
+            {categories.map(category => (
             <button
-              onClick={loadFinancialData}
-              className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-            >
-              <Filter className="w-5 h-5" />
+                key={category.id}
+                onClick={() => setSelectedCategory(category.id)}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all ${
+                  selectedCategory === category.id
+                    ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                {category.icon}
+                <span className="font-medium">{category.label}</span>
             </button>
+            ))}
           </div>
         </div>
 
-        {loading ? (
-          <div className="text-center py-12">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mx-auto"></div>
+        {/* Favoritos */}
+        {favorites.length > 0 && (
+          <div className="bg-gradient-to-r from-yellow-50 to-orange-50 rounded-xl border border-yellow-200 p-6">
+            <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+              <Star className="w-5 h-5 text-yellow-500 fill-yellow-500" />
+              Favoritos
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {reports.filter(r => favorites.includes(r.id)).map(report => (
+                <Link key={report.id} href={report.href}>
+                  <div className="bg-white rounded-lg p-4 hover:shadow-lg transition-all cursor-pointer border border-yellow-300">
+                    <div className="flex items-start justify-between mb-2">
+                      <div className={`bg-gradient-to-br ${report.color} p-3 rounded-lg text-white`}>
+                        {report.icon}
           </div>
-        ) : (
-          <>
-            {/* Cards de Métricas Principais */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              {/* Receita Total */}
-              <div className="bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl shadow-lg p-6 text-white">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="bg-white/20 p-3 rounded-lg">
-                    <DollarSign className="w-6 h-6" />
+                      <button
+                        onClick={(e) => {
+                          e.preventDefault()
+                          toggleFavorite(report.id)
+                        }}
+                        className="text-yellow-500"
+                      >
+                        <Star className="w-5 h-5 fill-yellow-500" />
+                      </button>
                   </div>
-                  <div className="flex items-center gap-1 text-sm">
-                    <TrendingUp className="w-4 h-4" />
-                    <span>{financialData.growthRate}%</span>
+                    <h3 className="font-bold text-gray-900">{report.title}</h3>
+                    <p className="text-sm text-gray-600 mt-1">{report.description}</p>
                   </div>
-                </div>
-                <p className="text-white/80 text-sm mb-1">Receita Total</p>
-                <p className="text-3xl font-bold">R$ {financialData.totalRevenue.toFixed(2)}</p>
-              </div>
-
-              {/* Receita Líquida */}
-              <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="bg-blue-100 p-3 rounded-lg">
-                    <TrendingUp className="w-6 h-6 text-blue-600" />
+                </Link>
+              ))}
                   </div>
                 </div>
-                <p className="text-gray-600 text-sm mb-1">Receita Líquida</p>
-                <p className="text-3xl font-bold text-gray-900">R$ {financialData.netRevenue.toFixed(2)}</p>
-                <p className="text-xs text-gray-500 mt-2">Após comissões</p>
-              </div>
+        )}
 
-              {/* Ticket Médio */}
-              <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="bg-purple-100 p-3 rounded-lg">
-                    <Calendar className="w-6 h-6 text-purple-600" />
+        {/* Grid de Relatórios */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filteredReports.map(report => (
+            <Link key={report.id} href={report.href}>
+              <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 hover:shadow-xl hover:scale-105 transition-all cursor-pointer group">
+                <div className="flex items-start justify-between mb-4">
+                  <div className={`bg-gradient-to-br ${report.color} p-4 rounded-xl text-white group-hover:scale-110 transition-transform`}>
+                    {report.icon}
                   </div>
+                  <button
+                    onClick={(e) => {
+                      e.preventDefault()
+                      toggleFavorite(report.id)
+                    }}
+                    className={`transition-colors ${
+                      favorites.includes(report.id) 
+                        ? 'text-yellow-500' 
+                        : 'text-gray-300 hover:text-yellow-500'
+                    }`}
+                  >
+                    <Star className={`w-5 h-5 ${favorites.includes(report.id) ? 'fill-yellow-500' : ''}`} />
+                  </button>
                 </div>
-                <p className="text-gray-600 text-sm mb-1">Ticket Médio</p>
-                <p className="text-3xl font-bold text-gray-900">R$ {financialData.averageTicket.toFixed(2)}</p>
-                <p className="text-xs text-gray-500 mt-2">{financialData.totalAppointments} agendamentos</p>
-              </div>
-
-              {/* Total de Comissões */}
-              <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="bg-orange-100 p-3 rounded-lg">
-                    <Users className="w-6 h-6 text-orange-600" />
-                  </div>
+                <h3 className="text-xl font-bold text-gray-900 mb-2">{report.title}</h3>
+                <p className="text-gray-600 text-sm">{report.description}</p>
+                <div className="mt-4 flex items-center text-blue-600 font-medium text-sm">
+                  Ver relatório
+                  <svg className="w-4 h-4 ml-1 group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
                 </div>
-                <p className="text-gray-600 text-sm mb-1">Total de Comissões</p>
-                <p className="text-3xl font-bold text-gray-900">R$ {financialData.totalCommissions.toFixed(2)}</p>
-                <p className="text-xs text-gray-500 mt-2">Pagamento aos profissionais</p>
               </div>
-            </div>
-
-            {/* Gráficos e Tabelas */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Top Serviços */}
-              <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-                <div className="flex items-center justify-between mb-6">
-                  <h2 className="text-xl font-bold text-gray-900">Top Serviços</h2>
-                  <Briefcase className="w-5 h-5 text-green-600" />
+            </Link>
+          ))}
                 </div>
                 
-                <div className="space-y-4">
-                  {financialData.topServices.slice(0, 5).map((service: any, index: number) => {
-                    const percentage = (service.total_revenue / financialData.totalRevenue) * 100
-                    return (
-                      <div key={service.service_id} className="space-y-2">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-3">
-                            <div className={`w-8 h-8 rounded-lg flex items-center justify-center font-bold text-white ${
-                              index === 0 ? 'bg-gradient-to-br from-yellow-400 to-yellow-500' :
-                              index === 1 ? 'bg-gradient-to-br from-gray-300 to-gray-400' :
-                              index === 2 ? 'bg-gradient-to-br from-orange-400 to-orange-500' :
-                              'bg-gradient-to-br from-green-500 to-emerald-600'
-                            }`}>
-                              {index + 1}
-                            </div>
-                            <div>
-                              <p className="font-semibold text-gray-900">{service.service_name}</p>
-                              <p className="text-xs text-gray-500">{service.appointment_count} agendamentos</p>
-                            </div>
-                          </div>
-                          <div className="text-right">
-                            <p className="font-bold text-green-600">R$ {service.total_revenue?.toFixed(2)}</p>
-                            <p className="text-xs text-gray-500">{percentage.toFixed(1)}%</p>
-                          </div>
-                        </div>
-                        <div className="w-full bg-gray-200 rounded-full h-2">
-                          <div 
-                            className="bg-gradient-to-r from-green-500 to-emerald-600 h-2 rounded-full transition-all"
-                            style={{ width: `${percentage}%` }}
-                          />
-                        </div>
-                      </div>
-                    )
-                  })}
-                </div>
-              </div>
-
-              {/* Top Profissionais */}
-              <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-                <div className="flex items-center justify-between mb-6">
-                  <h2 className="text-xl font-bold text-gray-900">Top Profissionais</h2>
-                  <Users className="w-5 h-5 text-green-600" />
-                </div>
-                
-                <div className="space-y-4">
-                  {financialData.topProfessionals.slice(0, 5).map((prof: any, index: number) => {
-                    const commission = (prof.total_revenue || 0) * 0.4
-                    return (
-                      <div key={prof.professional_id} className="flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 transition-colors">
-                        <div className="flex items-center gap-3">
-                          <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-white ${
-                            index === 0 ? 'bg-gradient-to-br from-yellow-400 to-yellow-500' :
-                            index === 1 ? 'bg-gradient-to-br from-gray-300 to-gray-400' :
-                            index === 2 ? 'bg-gradient-to-br from-orange-400 to-orange-500' :
-                            'bg-gradient-to-br from-purple-500 to-purple-600'
-                          }`}>
-                            {index + 1}
-                          </div>
-                          <div>
-                            <p className="font-semibold text-gray-900">{prof.professional_name}</p>
-                            <p className="text-xs text-gray-500">
-                              {prof.appointment_count} agendamentos • Comissão: R$ {commission.toFixed(2)}
-                            </p>
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <p className="font-bold text-green-600">R$ {prof.total_revenue?.toFixed(2)}</p>
-                        </div>
-                      </div>
-                    )
-                  })}
-                </div>
-              </div>
+        {filteredReports.length === 0 && (
+          <div className="text-center py-12">
+            <FileText className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+            <p className="text-gray-500">Nenhum relatório encontrado nesta categoria.</p>
             </div>
-
-            {/* Resumo Detalhado */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-              <h2 className="text-xl font-bold text-gray-900 mb-6">Resumo Detalhado</h2>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-4">
-                  <h3 className="font-semibold text-gray-700 mb-3">Receitas</h3>
-                  <div className="flex justify-between items-center py-2 border-b">
-                    <span className="text-gray-600">Receita Bruta</span>
-                    <span className="font-semibold text-green-600">R$ {financialData.totalRevenue.toFixed(2)}</span>
-                  </div>
-                  <div className="flex justify-between items-center py-2 border-b">
-                    <span className="text-gray-600">(-) Comissões</span>
-                    <span className="font-semibold text-red-600">R$ {financialData.totalCommissions.toFixed(2)}</span>
-                  </div>
-                  <div className="flex justify-between items-center py-2 bg-green-50 px-3 rounded-lg">
-                    <span className="font-bold text-gray-900">Receita Líquida</span>
-                    <span className="font-bold text-green-600 text-lg">R$ {financialData.netRevenue.toFixed(2)}</span>
-                  </div>
-                </div>
-
-                <div className="space-y-4">
-                  <h3 className="font-semibold text-gray-700 mb-3">Estatísticas</h3>
-                  <div className="flex justify-between items-center py-2 border-b">
-                    <span className="text-gray-600">Total de Agendamentos</span>
-                    <span className="font-semibold">{financialData.totalAppointments}</span>
-                  </div>
-                  <div className="flex justify-between items-center py-2 border-b">
-                    <span className="text-gray-600">Ticket Médio</span>
-                    <span className="font-semibold">R$ {financialData.averageTicket.toFixed(2)}</span>
-                  </div>
-                  <div className="flex justify-between items-center py-2 border-b">
-                    <span className="text-gray-600">Taxa de Comissão Média</span>
-                    <span className="font-semibold">40%</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </>
         )}
       </div>
     </DashboardLayout>

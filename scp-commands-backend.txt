@@ -1,0 +1,28 @@
+# Comandos SCP para Backend - Execute individualmente no PowerShell
+# VPS_IP="72.62.138.239"
+# VPS_USER="root"
+# VPS_PATH="/opt/saas/atendo"
+
+# 1. professional_schedule_override.py (model)
+scp "c:/PROJETOS/agendamento_SAAS (1)/agendamento_SAAS/backend/app/models/professional_schedule_override.py" root@72.62.138.239:/opt/saas/atendo/backend/app/models/
+
+# 2. professional_voucher.py (model)
+scp "c:/PROJETOS/agendamento_SAAS (1)/agendamento_SAAS/backend/app/models/professional_voucher.py" root@72.62.138.239:/opt/saas/atendo/backend/app/models/
+
+# 3. professional_schedule_override.py (schema)
+scp "c:/PROJETOS/agendamento_SAAS (1)/agendamento_SAAS/backend/app/schemas/professional_schedule_override.py" root@72.62.138.239:/opt/saas/atendo/backend/app/schemas/
+
+# 4. professional_voucher.py (schema)
+scp "c:/PROJETOS/agendamento_SAAS (1)/agendamento_SAAS/backend/app/schemas/professional_voucher.py" root@72.62.138.239:/opt/saas/atendo/backend/app/schemas/
+
+# 5. professional_schedule_overrides.py (endpoint)
+scp "c:/PROJETOS/agendamento_SAAS (1)/agendamento_SAAS/backend/app/api/v1/endpoints/professional_schedule_overrides.py" root@72.62.138.239:/opt/saas/atendo/backend/app/api/v1/endpoints/
+
+# 6. professional_vouchers.py (endpoint)
+scp "c:/PROJETOS/agendamento_SAAS (1)/agendamento_SAAS/backend/app/api/v1/endpoints/professional_vouchers.py" root@72.62.138.239:/opt/saas/atendo/backend/app/api/v1/endpoints/
+
+# 7. professionals.py (atualizado com reorder)
+scp "c:/PROJETOS/agendamento_SAAS (1)/agendamento_SAAS/backend/app/api/v1/endpoints/professionals.py" root@72.62.138.239:/opt/saas/atendo/backend/app/api/v1/endpoints/
+
+# 8. api.py (atualizado com novos routers)
+scp "c:/PROJETOS/agendamento_SAAS (1)/agendamento_SAAS/backend/app/api/v1/api.py" root@72.62.138.239:/opt/saas/atendo/backend/app/api/v1/

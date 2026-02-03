@@ -28,11 +28,11 @@ export default function BookAppointmentPage() {
   const loadData = async () => {
     try {
       const [servicesRes, profsRes] = await Promise.all([
-        serviceService.list(),
-        userService.getProfessionals()
+        serviceService.listPublic(),
+        userService.getProfessionalsPublic()
       ])
-      setServices(servicesRes.data)
-      setProfessionals(profsRes.data)
+      setServices(servicesRes.data || [])
+      setProfessionals(profsRes.data || [])
     } catch (error) {
       toast.error('Erro ao carregar dados')
     }
@@ -41,10 +41,12 @@ export default function BookAppointmentPage() {
   const handleSubmit = async () => {
     setLoading(true)
     try {
+      // Create proper ISO datetime with timezone
+      const appointmentDateTime = new Date(`${selectedDate}T${selectedTime}:00`);
       const appointmentData = {
         service_id: selectedService.id,
         professional_id: selectedProfessional.id,
-        start_time: `${selectedDate}T${selectedTime}:00`,
+        start_time: appointmentDateTime.toISOString(),
         notes: clientInfo.notes,
         client_name: clientInfo.name,
         client_email: clientInfo.email,

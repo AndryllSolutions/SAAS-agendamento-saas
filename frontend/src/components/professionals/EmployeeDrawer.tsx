@@ -47,15 +47,23 @@ interface EmployeeDrawerProps {
 export default function EmployeeDrawer({ employee, onClose, onSave }: EmployeeDrawerProps) {
   const [activeSection, setActiveSection] = useState<EmployeeSection>('cadastro')
   const [hasChanges, setHasChanges] = useState(false)
-  const { closeDrawer } = useDrawerStack()
+  const { closeDrawer, updateURL } = useDrawerStack()
+
+  // Update URL when section changes
+  const handleSectionChange = (section: EmployeeSection) => {
+    setActiveSection(section)
+    updateURL(employee.id, section)
+  }
 
   const handleClose = () => {
     if (hasChanges) {
       if (window.confirm('Você tem alterações não salvas. Deseja sair mesmo assim?')) {
+        updateURL() // Clear URL
         onClose()
         closeDrawer(1)
       }
     } else {
+      updateURL() // Clear URL
       onClose()
       closeDrawer(1)
     }
@@ -136,7 +144,7 @@ export default function EmployeeDrawer({ employee, onClose, onSave }: EmployeeDr
         {/* Subnav */}
         <EmployeeSubnav
           activeSection={activeSection}
-          onSectionChange={setActiveSection}
+          onSectionChange={handleSectionChange}
         />
 
         {/* Content */}

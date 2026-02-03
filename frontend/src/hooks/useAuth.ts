@@ -8,8 +8,11 @@ export const useAuth = () => {
     isLoading, 
     error, 
     checkAuth, 
-    clearError, 
-    ...authActions 
+    clearError,
+    setAuth,
+    setUser,
+    logout,
+    refreshAccessToken,
   } = useAuthStore();
 
   // Verificar autenticação ao montar o componente
@@ -31,7 +34,12 @@ export const useAuth = () => {
     isAuthenticated,
     isLoading,
     error,
-    ...authActions,
+    checkAuth,
+    clearError,
+    setAuth,
+    setUser,
+    logout,
+    refreshAccessToken,
   };
 };
 

@@ -1,0 +1,432 @@
+{
+  "metadata": {
+    "generated_at": "2025-12-11",
+    "database": "PostgreSQL",
+    "orm": "SQLAlchemy",
+    "migrations": "Alembic",
+    "total_tables": 47,
+    "multi_tenant_tables": 41,
+    "global_tables": 6
+  },
+  
+  "core_tables": {
+    "companies": {
+      "description": "Tabela raiz do multi-tenant",
+      "multi_tenant": false,
+      "is_tenant_root": true,
+      "primary_key": "id",
+      "unique_fields": ["slug"],
+      "indexed_fields": ["id", "slug", "name", "cnpj"],
+      "key_fields": {
+        "subscription_plan": "BASIC/PRO/PREMIUM",
+        "subscription_expires_at": "DateTime",
+        "is_active": "Boolean",
+        "features": "JSON"
+      },
+      "relationships": {
+        "one_to_many": [
+          "users", "services", "appointments", "clients", "products",
+          "commands", "packages", "financial_transactions", "commissions",
+          "goals", "promotions", "invoices", "notifications"
+        ],
+        "one_to_one": [
+          "company_settings", "commission_configs", "fiscal_configurations",
+          "whatsapp_provider"
+        ]
+      }
+    },
+    
+    "users": {
+      "description": "Usuários com suporte multi-tenant e RBAC",
+      "multi_tenant": true,
+      "company_id_nullable": true,
+      "primary_key": "id",
+      "unique_fields": ["email"],
+      "indexed_fields": ["id", "email", "company_id", "saas_role", "role"],
+      "key_fields": {
+        "email": "String(255) UNIQUE",
+        "saas_role": "String(50) - SAAS_OWNER/SAAS_STAFF",
+        "role": "Enum(UserRole) - DEPRECATED",
+        "is_active": "Boolean",
+        "commission_rate": "Integer (0-100)"
+      },
+      "rbac": {
+        "global_layer": "saas_role (SAAS_OWNER, SAAS_STAFF)",
+        "company_layer": "via CompanyUser.role"
+      }
+    },
+    
+    "company_users": {
+      "description": "Multi-company bridge table",
+      "multi_tenant": true,
+      "primary_key": "id",
+      "unique_constraint": ["user_id", "company_id"],
+      "indexed_fields": ["company_id", "user_id", "role", "is_active"],
+      "key_fields": {
+        "role": "Enum(CompanyRole)",
+        "is_active": "String(20) - active/inactive/pending/suspended"
+      },
+      "company_roles": [
+        "COMPANY_OWNER",
+        "COMPANY_MANAGER",
+        "COMPANY_OPERATOR",
+        "COMPANY_PROFESSIONAL",
+        "COMPANY_RECEPTIONIST",
+        "COMPANY_FINANCE",
+        "COMPANY_CLIENT",
+        "COMPANY_READ_ONLY"
+      ]
+    },
+    
+    "company_subscriptions": {
+      "description": "Assinaturas de empresas",
+      "multi_tenant": true,
+      "primary_key": "id",
+      "key_fields": {
+        "plan_type": "String(50) - FREE/TRIAL/PRO/PREMIUM",
+        "trial_end_date": "DateTime",
+        "coupon_code": "String(100)",
+        "referral_code": "String(100)"
+      }
+    }
+  },
+  
+  "business_tables": {
+    "clients": {
+      "multi_tenant": true,
+      "description": "Clientes CRM (separado de Users)",
+      "indexed_fields": ["company_id", "user_id", "email", "phone", "cpf", "cnpj", "full_name"],
+      "features": ["credits", "marketing_opt_in", "cashback_balance"]
+    },
+    
+    "appointments": {
+      "multi_tenant": true,
+      "description": "Agendamentos",
+      "indexed_fields": ["company_id", "client_crm_id", "professional_id", "start_time", "end_time", "status"],
+      "status_enum": ["PENDING", "CONFIRMED", "CHECKED_IN", "IN_PROGRESS", "COMPLETED", "CANCELLED", "NO_SHOW"],
+      "features": ["qr_code_checkin", "reminders_24h_2h", "payment_integration"]
+    },
+    
+    "services": {
+      "multi_tenant": true,
+      "description": "Serviços oferecidos",
+      "key_fields": {
+        "price": "Numeric(10,2)",
+        "duration_minutes": "Integer",
+        "commission_rate": "Integer (0-100)"
+      }
+    },
+    
+    "products": {
+      "multi_tenant": true,
+      "description": "Produtos vendidos",
+      "indexed_fields": ["company_id", "name", "barcode", "is_active"],
+      "key_fields": {
+        "stock_current": "Integer",
+        "cost_price": "Numeric(10,2)",
+        "sale_price": "Numeric(10,2)",
+        "commission_percentage": "Integer"
+      }
+    }
+  },
+  
+  "financial_tables": {
+    "financial_transactions": {
+      "multi_tenant": true,
+      "indexed_fields": ["company_id", "type", "status", "is_paid", "date", "client_id"],
+      "enums": {
+        "type": ["INCOME", "EXPENSE"],
+        "status": ["PLANNED", "LIQUIDATED", "CANCELLED", "BLOCKED"],
+        "origin": ["COMMAND", "PURCHASE", "MANUAL", "SUBSCRIPTION", "OTHER"]
+      },
+      "key_fields": {
+        "value": "Numeric(10,2)",
+        "net_value": "Numeric(10,2)",
+        "fee_percentage": "Numeric(5,2)",
+        "is_paid": "Boolean"
+      }
+    },
+    
+    "financial_accounts": {
+      "multi_tenant": true,
+      "description": "Contas financeiras (caixa, banco)",
+      "key_fields": {
+        "account_type": "cash/bank/credit_card",
+        "balance": "Numeric(10,2)",
+        "admin_only": "Boolean"
+      }
+    },
+    
+    "commands": {
+      "multi_tenant": true,
+      "description": "Comandas/Vendas",
+      "indexed_fields": ["company_id", "client_crm_id", "professional_id", "number", "date", "status"],
+      "status_enum": ["OPEN", "IN_PROGRESS", "FINISHED", "CANCELLED"],
+      "features": ["nfe", "nfse", "nfce", "commissions"]
+    },
+    
+    "commissions": {
+      "multi_tenant": true,
+      "description": "Comissões de profissionais",
+      "status_enum": ["PENDING", "PAID", "CANCELLED"],
+      "key_fields": {
+        "base_value": "Numeric(10,2)",
+        "commission_percentage": "Integer",
+        "commission_value": "Numeric(10,2)"
+      }
+    },
+    
+    "payments": {
+      "multi_tenant": true,
+      "description": "Pagamentos de agendamentos",
+      "method_enum": ["CASH", "CREDIT_CARD", "DEBIT_CARD", "PIX", "BOLETO", "PAYPAL", "MERCADOPAGO", "STRIPE"],
+      "status_enum": ["PENDING", "PROCESSING", "COMPLETED", "FAILED", "REFUNDED", "CANCELLED"],
+      "features": ["pix_qr_code", "boleto", "gateway_integration"]
+    }
+  },
+  
+  "package_tables": {
+    "predefined_packages": {
+      "multi_tenant": true,
+      "description": "Modelos de pacotes",
+      "key_fields": {
+        "services_included": "JSON [{service_id, sessions}]",
+        "validity_days": "Integer",
+        "total_value": "Numeric(10,2)"
+      }
+    },
+    
+    "packages": {
+      "multi_tenant": true,
+      "description": "Pacotes vendidos",
+      "status_enum": ["ACTIVE", "EXPIRED", "EXHAUSTED"],
+      "key_fields": {
+        "sessions_balance": "JSON {service_id: remaining}",
+        "expiry_date": "DateTime"
+      }
+    },
+    
+    "subscription_sales": {
+      "multi_tenant": true,
+      "description": "Assinaturas vendidas aos clientes",
+      "status_enum": ["ACTIVE", "SUSPENDED", "CANCELLED", "EXPIRED"],
+      "key_fields": {
+        "monthly_value": "Numeric(10,2)",
+        "current_month_credits_used": "Numeric(10,2)"
+      }
+    }
+  },
+  
+  "marketing_tables": {
+    "cashback_rules": {
+      "multi_tenant": true,
+      "rule_type_enum": ["PERCENTAGE", "FIXED"],
+      "features": ["product_service_filter", "client_filter", "validity_period"]
+    },
+    
+    "cashback_balances": {
+      "multi_tenant": true,
+      "unique_constraint": ["client_crm_id"],
+      "description": "Um saldo por cliente"
+    },
+    
+    "promotions": {
+      "multi_tenant": true,
+      "type_enum": ["DISCOUNT_PERCENTAGE", "DISCOUNT_FIXED", "BUY_ONE_GET_ONE", "FREE_SERVICE", "OTHER"],
+      "features": ["usage_limits", "client_filter", "validity_period"]
+    },
+    
+    "goals": {
+      "multi_tenant": true,
+      "type_enum": ["REVENUE", "APPOINTMENTS", "PRODUCT_SALES", "SERVICES", "OTHER"],
+      "key_fields": {
+        "target_value": "Numeric(10,2)",
+        "current_value": "Numeric(10,2) - calculated",
+        "progress_percentage": "Integer - calculated"
+      }
+    }
+  },
+  
+  "notification_system": {
+    "notification_templates": {
+      "multi_tenant": true,
+      "description": "Templates reutilizáveis com placeholders",
+      "channels": ["EMAIL", "SMS", "WHATSAPP", "PUSH", "IN_APP"],
+      "event_types": [
+        "APPOINTMENT_CREATED", "APPOINTMENT_UPDATED", "APPOINTMENT_CANCELLED",
+        "APPOINTMENT_REMINDER", "APPOINTMENT_CONFIRMED",
+        "PAYMENT_RECEIVED", "PAYMENT_FAILED",
+        "COMMAND_CREATED", "COMMAND_CLOSED",
+        "PACKAGE_EXPIRING", "PACKAGE_EXPIRED",
+        "WELCOME_MESSAGE", "BIRTHDAY", "REVIEW_REQUEST", "CUSTOM"
+      ],
+      "placeholders": [
+        "{client_name}", "{professional_name}", "{service_name}",
+        "{appointment_date}", "{appointment_time}",
+        "{company_name}", "{total_value}"
+      ]
+    },
+    
+    "notification_triggers": {
+      "multi_tenant": true,
+      "description": "Triggers automáticos baseados em eventos",
+      "trigger_conditions": ["IMMEDIATE", "BEFORE_EVENT", "AFTER_EVENT", "DAILY", "WEEKLY", "MONTHLY"],
+      "features": ["filters", "multi_target", "retry"]
+    },
+    
+    "notification_queue": {
+      "multi_tenant": true,
+      "description": "Fila de envio com scheduling e retry",
+      "status": ["pending", "processing", "sent", "failed", "cancelled"],
+      "features": ["scheduling", "retry_count", "error_tracking"]
+    },
+    
+    "user_push_subscriptions": {
+      "multi_tenant": true,
+      "description": "Web Push nativo (VAPID)",
+      "unique_constraint": ["endpoint"],
+      "features": ["multi_device", "encryption", "native_webpush"],
+      "no_external_services": true
+    }
+  },
+  
+  "whatsapp_marketing": {
+    "whatsapp_providers": {
+      "multi_tenant": true,
+      "one_to_one_with_company": true,
+      "providers": ["evolution", "twilio"],
+      "key_fields": {
+        "is_connected": "Boolean",
+        "instance_id": "String"
+      }
+    },
+    
+    "whatsapp_campaigns": {
+      "multi_tenant": true,
+      "campaign_types": [
+        "BIRTHDAY", "RECONQUER", "REMINDER", "CARE", "RETURN",
+        "INFORMED", "WELCOME", "INVITE_ONLINE", "CUSTOM"
+      ],
+      "status_enum": ["ACTIVE", "PAUSED", "FINISHED", "CANCELLED"],
+      "features": ["auto_send", "client_filter", "scheduling", "statistics"]
+    }
+  },
+  
+  "configuration_tables": {
+    "company_settings": {
+      "multi_tenant": true,
+      "one_to_one_with_company": true,
+      "encrypted_fields": ["email_config", "sms_config", "whatsapp_config", "vapid_config"],
+      "encryption": "Fernet",
+      "description": "Credenciais criptografadas"
+    },
+    
+    "commission_configs": {
+      "multi_tenant": true,
+      "one_to_one_with_company": true,
+      "key_fields": {
+        "date_filter_type": "competence/availability",
+        "command_type_filter": "all/finished",
+        "fees_responsibility": "proportional/company_100/professional_100"
+      }
+    },
+    
+    "fiscal_configurations": {
+      "multi_tenant": true,
+      "one_to_one_with_company": true,
+      "providers": ["focus", "bling", "tiny"],
+      "invoice_types": ["nfse", "nfe", "nfce"],
+      "features": ["auto_generate", "sandbox_mode"]
+    }
+  },
+  
+  "missing_tables_for_saas_admin": [
+    {
+      "name": "plans",
+      "priority": "HIGH",
+      "description": "Planos SaaS (Basic, Pro, Premium)",
+      "fields": ["name", "slug", "price_monthly", "price_yearly", "max_users", "max_appointments_month", "features"]
+    },
+    {
+      "name": "plan_feature_limits",
+      "priority": "HIGH",
+      "description": "Limites de features por plano",
+      "fields": ["plan_id", "feature_key", "limit_value", "limit_type"]
+    },
+    {
+      "name": "billing_invoices",
+      "priority": "HIGH",
+      "description": "Faturas SaaS",
+      "fields": ["company_id", "plan_id", "amount", "period_start", "period_end", "status", "due_date"]
+    },
+    {
+      "name": "usage_tracking",
+      "priority": "HIGH",
+      "description": "Rastreamento de uso de features",
+      "fields": ["company_id", "feature_key", "usage_count", "period_month"]
+    },
+    {
+      "name": "subscription_history",
+      "priority": "MEDIUM",
+      "description": "Histórico de mudanças de plano",
+      "fields": ["company_id", "old_plan", "new_plan", "reason", "changed_by", "changed_at"]
+    },
+    {
+      "name": "audit_logs",
+      "priority": "MEDIUM",
+      "description": "Logs de auditoria de ações admin",
+      "fields": ["user_id", "company_id", "action", "entity_type", "entity_id", "changes", "ip_address"]
+    },
+    {
+      "name": "feature_flags",
+      "priority": "MEDIUM",
+      "description": "Feature toggles por empresa",
+      "fields": ["feature_key", "company_id", "is_enabled", "config"]
+    },
+    {
+      "name": "support_tickets",
+      "priority": "LOW",
+      "description": "Sistema de suporte",
+      "fields": ["company_id", "user_id", "subject", "status", "priority", "assigned_to"]
+    }
+  ],
+  
+  "multi_tenant_summary": {
+    "total_tables": 47,
+    "with_company_id": 41,
+    "without_company_id": 6,
+    "one_to_one_with_company": 4,
+    "company_id_nullable": 1,
+    "tables_without_company_id": [
+      "companies (raiz)",
+      "command_items (via command_id)",
+      "purchase_items (via purchase_id)",
+      "notifications (via user_id - legado)",
+      "plans (global - missing)",
+      "plan_feature_limits (global - missing)"
+    ]
+  },
+  
+  "indexes_summary": {
+    "primary_keys": 47,
+    "foreign_keys": 120,
+    "unique_constraints": 15,
+    "composite_indexes": 30,
+    "single_column_indexes": 95
+  },
+  
+  "deprecated_fields": [
+    "User.role - usar CompanyUser.role",
+    "Waitlist.client_id - usar client_crm_id",
+    "Review.response_at - deveria ser DateTime"
+  ],
+  
+  "merged_tables": [
+    "Evaluations merged into Reviews (via origin field)"
+  ],
+  
+  "removed_tables": [
+    "Professional (migrated to Users with role=PROFESSIONAL)"
+  ]
+}
+

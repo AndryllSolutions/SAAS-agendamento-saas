@@ -1,0 +1,26 @@
+{
+  "login": {
+    "brandName": "Agendamiento SaaS",
+    "heroTitle": "Gestiona tus citas con facilidad",
+    "heroSubtitle": "Plataforma completa para la gestion de salones, clinicas y centros de belleza.",
+    "features": {
+      "item1": "Agenda inteligente e intuitiva",
+      "item2": "Gestion completa de clientes y servicios",
+      "item3": "Reportes financieros detallados",
+      "item4": "Notificaciones automaticas via SMS y Email"
+    },
+    "quote": "La mejor herramienta para transformar tu gestion de agendamientos",
+    "title": "Bienvenido de nuevo!",
+    "subtitle": "Ingresa con tus credenciales para acceder al sistema",
+    "emailLabel": "Correo",
+    "emailPlaceholder": "tu@email.com",
+    "passwordLabel": "Contrasena",
+    "passwordPlaceholder": "••••••••",
+    "rememberMe": "Recordarme",
+    "forgotPassword": "Olvidaste tu contrasena?",
+    "submit": "Ingresar",
+    "submitting": "Ingresando...",
+    "noAccount": "No tienes una cuenta?",
+    "createAccount": "Crear cuenta gratis"
+  }
+}

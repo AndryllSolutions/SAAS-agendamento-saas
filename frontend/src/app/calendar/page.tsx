@@ -13,7 +13,7 @@
 import { useState, useEffect, useMemo, useRef, useCallback, Suspense } from 'react'
 import { appointmentService, userService } from '@/services/api'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { ChevronLeft, ChevronRight, Plus, Calendar as CalendarIcon, Settings, Ban, Play, SlidersHorizontal, LayoutGrid, MoreHorizontal } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Plus, Calendar as CalendarIcon, Settings, Ban, Play, SlidersHorizontal, LayoutGrid, MoreHorizontal, CheckCircle, XCircle, X, ChevronDown } from 'lucide-react'
 import { toast } from 'sonner'
 import DashboardLayout from '@/components/DashboardLayout'
 import AppointmentForm from '@/components/AppointmentForm'
@@ -22,12 +22,17 @@ import { AgendaSettingsDrawer } from '@/components/agenda/AgendaSettingsDrawer'
 import { BlockForm } from '@/components/agenda/BlockForm'
 import { agendaAdapter } from '@/services/agendaAdapter'
 import { toAbsoluteImageUrl } from '@/utils/apiUrl'
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
+import { Checkbox } from '@/components/ui/checkbox'
 import * as Dialog from '@radix-ui/react-dialog'
 import FullCalendar from '@fullcalendar/react'
-import resourceTimeGridDay from '@fullcalendar/resource-timegrid'
+import resourceTimeGridPlugin from '@fullcalendar/resource-timegrid'
+import dayGridPlugin from '@fullcalendar/daygrid'
 import interactionPlugin from '@fullcalendar/interaction'
 import { EventInput } from '@fullcalendar/core'
 import ptBrLocale from '@fullcalendar/core/locales/pt-br'
+import { DayPicker } from 'react-day-picker'
+import { ptBR } from 'date-fns/locale'
 
 // Tipos TypeScript
 interface Professional {
@@ -54,7 +59,7 @@ interface Appointment {
   end_time: string
   service_id?: number | null
   internal_notes?: string | null
-  status: 'pending' | 'confirmed' | 'completed' | 'cancelled'
+  status: 'pending' | 'confirmed' | 'checked_in' | 'in_progress' | 'completed' | 'cancelled' | 'no_show'
   professional?: Professional | null
   client?: {
     id?: number
@@ -112,6 +117,29 @@ function CalendarPageContent() {
   const [selectedProfessional, setSelectedProfessional] = useState<Professional | null>(null)
   const [hoveredAppointment, setHoveredAppointment] = useState<{ appointment: Appointment; rect: DOMRect } | null>(null)
   const hoverCloseTimeoutRef = useRef<number | null>(null)
+
+  type CalendarViewKey = 'resourceTimeGridDay' | 'resourceTimeGridWeek' | 'dayGridMonth'
+  const [calendarView, setCalendarView] = useState<CalendarViewKey>('resourceTimeGridDay')
+  const [selectedProfessionalIds, setSelectedProfessionalIds] = useState<number[] | null>(null)
+  const [selectedStatusKeys, setSelectedStatusKeys] = useState<string[]>([
+    'confirmed',
+    'pending',
+    'checked_in',
+    'in_progress',
+    'completed',
+    'cancelled',
+    'no_show',
+    'blocked'
+  ])
+
+  type CalendarOverlayStatus = 'loading' | 'saving' | 'success' | 'error'
+  type CalendarOverlayState = {
+    status: CalendarOverlayStatus
+    title: string
+    message?: string
+  }
+  const [calendarOverlay, setCalendarOverlay] = useState<CalendarOverlayState | null>(null)
+  const overlayAutoCloseTimeoutRef = useRef<number | null>(null)
   
   // Refs para controle de estado sem causar re-render
   const fetchedDateRef = useRef<string>('')
@@ -121,38 +149,170 @@ function CalendarPageContent() {
   // Converter string para Date (memorizado)
   const currentDate = useMemo(() => new Date(currentDateStr + 'T12:00:00'), [currentDateStr])
 
+  useEffect(() => {
+    if (professionals.length === 0) return
+    setSelectedProfessionalIds((prev) => {
+      if (prev === null) return professionals.map((p) => p.id)
+      const setPrev = new Set(prev)
+      return professionals.map((p) => p.id).filter((id) => setPrev.has(id))
+    })
+  }, [professionals])
+
+  useEffect(() => {
+    const api = calendarRef.current?.getApi?.()
+    if (!api) return
+    api.changeView(calendarView)
+  }, [calendarView])
+
+  const currentSelectedProfessionalIds = useMemo(() => {
+    return selectedProfessionalIds ?? professionals.map((p) => p.id)
+  }, [professionals, selectedProfessionalIds])
+
+  const toggleProfessionalFilter = useCallback(
+    (id: number) => {
+      setSelectedProfessionalIds((prev) => {
+        const current = prev ?? professionals.map((p) => p.id)
+        const exists = current.includes(id)
+        return exists ? current.filter((v) => v !== id) : [...current, id]
+      })
+    },
+    [professionals]
+  )
+
+  const selectAllProfessionals = useCallback(() => {
+    setSelectedProfessionalIds(professionals.map((p) => p.id))
+  }, [professionals])
+
+  const clearProfessionals = useCallback(() => {
+    setSelectedProfessionalIds([])
+  }, [])
+
+  const toggleStatusFilter = useCallback((statusKey: string) => {
+    setSelectedStatusKeys((prev) => {
+      const exists = prev.includes(statusKey)
+      return exists ? prev.filter((v) => v !== statusKey) : [...prev, statusKey]
+    })
+  }, [])
+
+  const statusOptions = useMemo(
+    () => [
+      { label: 'Confirmado', value: 'confirmed' },
+      { label: 'Pendente', value: 'pending' },
+      { label: 'Check-in', value: 'checked_in' },
+      { label: 'Em andamento', value: 'in_progress' },
+      { label: 'Concluído', value: 'completed' },
+      { label: 'Cancelado', value: 'cancelled' },
+      { label: 'Não compareceu', value: 'no_show' },
+      { label: 'Bloqueado', value: 'blocked' }
+    ],
+    []
+  )
+
+  const clearOverlayAutoClose = useCallback(() => {
+    if (overlayAutoCloseTimeoutRef.current) {
+      window.clearTimeout(overlayAutoCloseTimeoutRef.current)
+      overlayAutoCloseTimeoutRef.current = null
+    }
+  }, [])
+
+  const closeCalendarOverlay = useCallback(() => {
+    clearOverlayAutoClose()
+    setCalendarOverlay(null)
+  }, [clearOverlayAutoClose])
+
+  const openCalendarOverlay = useCallback(
+    (status: CalendarOverlayStatus, title: string, message?: string) => {
+      clearOverlayAutoClose()
+      setCalendarOverlay({ status, title, message })
+    },
+    [clearOverlayAutoClose]
+  )
+
+  const showCalendarOverlaySuccess = useCallback(
+    (message?: string) => {
+      clearOverlayAutoClose()
+      setCalendarOverlay({ status: 'success', title: 'Concluído', message })
+      overlayAutoCloseTimeoutRef.current = window.setTimeout(() => {
+        setCalendarOverlay(null)
+        overlayAutoCloseTimeoutRef.current = null
+      }, 1200)
+    },
+    [clearOverlayAutoClose]
+  )
+
+  const showCalendarOverlayError = useCallback(
+    (message?: string) => {
+      clearOverlayAutoClose()
+      setCalendarOverlay({ status: 'error', title: 'Erro', message })
+    },
+    [clearOverlayAutoClose]
+  )
+
   // Função de fetch memorizada
-  const fetchData = useCallback(async (dateStr: string, showLoading = false) => {
+  const fetchData = useCallback(async (dateStr: string, showLoading = false, options?: { suppressOverlay?: boolean }) => {
     // Evita chamadas duplicadas
     if (isFetchingRef.current) return
-    if (dateStr === fetchedDateRef.current) return
+    const fetchKey = `${dateStr}|${calendarView}`
+    if (fetchKey === fetchedDateRef.current) return
+
+    if (!options?.suppressOverlay) {
+      openCalendarOverlay('loading', 'Carregando agenda...', 'Buscando profissionais e agendamentos')
+    }
     
     isFetchingRef.current = true
     if (showLoading) setLoading(true)
     
     try {
-      const startOfDay = new Date(dateStr + 'T00:00:00')
-      const endOfDay = new Date(dateStr + 'T23:59:59')
+      const anchor = new Date(dateStr + 'T12:00:00')
+      let start: Date
+      let end: Date
+
+      if (calendarView === 'resourceTimeGridWeek') {
+        const day = anchor.getDay()
+        const diffToMonday = (day + 6) % 7
+        start = new Date(anchor)
+        start.setDate(start.getDate() - diffToMonday)
+        start.setHours(0, 0, 0, 0)
+        end = new Date(start)
+        end.setDate(end.getDate() + 6)
+        end.setHours(23, 59, 59, 999)
+      } else if (calendarView === 'dayGridMonth') {
+        start = new Date(anchor.getFullYear(), anchor.getMonth(), 1)
+        start.setHours(0, 0, 0, 0)
+        end = new Date(anchor.getFullYear(), anchor.getMonth() + 1, 0)
+        end.setHours(23, 59, 59, 999)
+      } else {
+        start = new Date(dateStr + 'T00:00:00')
+        end = new Date(dateStr + 'T23:59:59')
+      }
       
       const [profsRes, aptsRes] = await Promise.all([
         userService.getProfessionals(),
         appointmentService.list({
-          start_date: startOfDay.toISOString(),
-          end_date: endOfDay.toISOString()
+          start_date: start.toISOString(),
+          end_date: end.toISOString()
         })
       ])
       
       setProfessionals(profsRes.data || [])
       setAppointments(aptsRes.data || [])
-      fetchedDateRef.current = dateStr
+      fetchedDateRef.current = fetchKey
+
+      if (!options?.suppressOverlay) {
+        showCalendarOverlaySuccess('Agenda carregada')
+      }
     } catch (error) {
       toast.error('Erro ao carregar dados da agenda')
       console.error('Erro ao carregar agenda:', error)
+
+      if (!options?.suppressOverlay) {
+        showCalendarOverlayError('Não foi possível carregar a agenda')
+      }
     } finally {
       setLoading(false)
       isFetchingRef.current = false
     }
-  }, [])
+  }, [calendarView, openCalendarOverlay, showCalendarOverlayError, showCalendarOverlaySuccess])
 
   const handleEventDrop = useCallback(
     async (info: any) => {
@@ -204,6 +364,7 @@ function CalendarPageContent() {
   const confirmReschedule = useCallback(async () => {
     if (!pendingReschedule || rescheduleSaving) return
     setRescheduleSaving(true)
+    openCalendarOverlay('saving', 'Salvando...', 'Atualizando o agendamento')
     try {
       await appointmentService.update(pendingReschedule.appointmentId, {
         start_time: pendingReschedule.startIso,
@@ -214,16 +375,18 @@ function CalendarPageContent() {
 
       setPendingReschedule(null)
       fetchedDateRef.current = ''
-      await fetchData(currentDateStr, false)
+      await fetchData(currentDateStr, false, { suppressOverlay: true })
+      showCalendarOverlaySuccess('Agendamento atualizado')
     } catch {
       toast.error('Erro ao atualizar agendamento')
       const pending = pendingReschedule
       setPendingReschedule(null)
       pending.revert()
+      showCalendarOverlayError('Não foi possível salvar a alteração')
     } finally {
       setRescheduleSaving(false)
     }
-  }, [currentDateStr, fetchData, pendingReschedule, rescheduleSaving])
+  }, [currentDateStr, fetchData, openCalendarOverlay, pendingReschedule, rescheduleSaving, showCalendarOverlayError, showCalendarOverlaySuccess])
 
   // Carregar configurações e cores
   useEffect(() => {
@@ -258,96 +421,122 @@ function CalendarPageContent() {
 
   // Efeito para carregar dados quando a data muda
   useEffect(() => {
-    // Só faz fetch se a data mudou
-    if (currentDateStr !== fetchedDateRef.current) {
+    const fetchKey = `${currentDateStr}|${calendarView}`
+    if (fetchKey !== fetchedDateRef.current) {
       const isFirstLoad = fetchedDateRef.current === ''
       fetchData(currentDateStr, isFirstLoad)
     }
-  }, [currentDateStr, fetchData])
+  }, [calendarView, currentDateStr, fetchData])
 
   // Resources do FullCalendar (memorizado)
   const resources: CalendarResource[] = useMemo(() => {
+    const allowed = new Set(selectedProfessionalIds ?? professionals.map((p) => p.id))
     return [
       {
         id: 'unit',
         title: 'IMPERIO',
         extendedProps: { avatar_url: null }
       },
-      ...professionals.map((prof) => ({
-        id: String(prof.id),
-        title: prof.full_name,
-        extendedProps: { avatar_url: toAbsoluteImageUrl(prof.avatar_url) }
-      }))
+      ...professionals
+        .filter((prof) => allowed.has(prof.id))
+        .map((prof) => ({
+          id: String(prof.id),
+          title: prof.full_name,
+          extendedProps: { avatar_url: toAbsoluteImageUrl(prof.avatar_url) }
+        }))
     ]
-  }, [professionals])
+  }, [professionals, selectedProfessionalIds])
 
   // Events do FullCalendar (memorizado)
   const events: EventInput[] = useMemo(() => {
+    const allowedProfessionals = new Set(selectedProfessionalIds ?? professionals.map((p) => p.id))
+    const allowedStatuses = new Set(selectedStatusKeys)
+
     return appointments
-      .filter((apt) => apt.professional_id)
+      .filter((apt) => apt.professional_id && allowedProfessionals.has(apt.professional_id))
       .map((apt) => {
+        const professionalName = professionals.find((p) => p.id === apt.professional_id)?.full_name || 'Profissional'
+
         // Bloqueio (sem service_id)
         if (!apt.service_id) {
           const reason = apt.internal_notes?.replace('BLOQUEIO: ', '') || 'Bloqueio'
+          const filterStatusKey = 'blocked'
+          if (!allowedStatuses.has(filterStatusKey)) return null
+
+          const title = calendarView === 'dayGridMonth' ? `${professionalName}: Ocupado` : 'Ocupado'
           return {
             id: String(apt.id),
-            resourceId: String(apt.professional_id),
+            ...(calendarView === 'dayGridMonth' ? {} : { resourceId: String(apt.professional_id) }),
             start: apt.start_time,
             end: apt.end_time,
-            title: `Ocupado`,
+            title,
             backgroundColor: '#6B7280',
             borderColor: '#6B7280',
             extendedProps: {
               appointment: apt,
               isBlock: true,
-              reason
+              reason,
+              filterStatusKey
             }
           }
         }
 
         // Cancelado como bloqueio (configurável)
         if (apt.status === 'cancelled' && settings.blockCancelledAppointments) {
+          const filterStatusKey = 'blocked'
+          if (!allowedStatuses.has(filterStatusKey)) return null
+          const title = calendarView === 'dayGridMonth' ? `${professionalName}: Ocupado` : 'Ocupado'
           return {
             id: String(apt.id),
-            resourceId: String(apt.professional_id),
+            ...(calendarView === 'dayGridMonth' ? {} : { resourceId: String(apt.professional_id) }),
             start: apt.start_time,
             end: apt.end_time,
-            title: `Ocupado`,
+            title,
             backgroundColor: '#6B7280',
             borderColor: '#6B7280',
             extendedProps: {
               appointment: apt,
               isBlock: true,
-              reason: 'Cancelado'
+              reason: 'Cancelado',
+              filterStatusKey
             }
           }
         }
-        
+
         // Agendamento normal
         const clientName = apt.client?.full_name || 'Cliente'
         const serviceName = apt.service?.name || 'Serviço'
-        
+        const filterStatusKey = apt.status
+        if (!allowedStatuses.has(filterStatusKey)) return null
+
         // Buscar cor customizada ou usar cor padrão
-        const statusColor = colors.find(c => c.statusKey === apt.status)
+        const statusColor = colors.find((c) => c.statusKey === apt.status)
         const backgroundColor = statusColor?.hex || STATUS_COLORS[apt.status] || STATUS_COLORS.confirmed
-        
+
+        const title =
+          calendarView === 'dayGridMonth'
+            ? `${professionalName}: ${clientName} - ${serviceName}`
+            : `${clientName} - ${serviceName}`
+
         return {
           id: String(apt.id),
-          resourceId: String(apt.professional_id),
+          ...(calendarView === 'dayGridMonth' ? {} : { resourceId: String(apt.professional_id) }),
           start: apt.start_time,
           end: apt.end_time,
-          title: `${clientName} - ${serviceName}`,
+          title,
           backgroundColor,
           borderColor: backgroundColor,
           extendedProps: {
             appointment: apt,
             status: apt.status,
             clientName,
-            serviceName
+            serviceName,
+            filterStatusKey
           }
         }
       })
-  }, [appointments, colors, settings.blockCancelledAppointments])
+      .filter(Boolean) as EventInput[]
+  }, [appointments, calendarView, colors, professionals, selectedProfessionalIds, selectedStatusKeys, settings.blockCancelledAppointments])
 
   const scrollToNow = useCallback(() => {
     const now = new Date()
@@ -375,14 +564,20 @@ function CalendarPageContent() {
               title={title}
             >
               <div className="relative h-full w-full flex items-center justify-center">
-                {avatarUrl ? (
+                {avatarUrl && avatarUrl !== 'null' && avatarUrl !== '' ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
                     src={avatarUrl}
                     alt={title}
                     className="absolute inset-0 h-full w-full object-cover"
                     onError={(e) => {
-                      ;(e.currentTarget as HTMLImageElement).style.display = 'none'
+                      const img = e.currentTarget as HTMLImageElement;
+                      img.style.display = 'none';
+                      img.onerror = null;
+                    }}
+                    onLoad={(e) => {
+                      const img = e.currentTarget as HTMLImageElement;
+                      img.style.display = 'block';
                     }}
                   />
                 ) : null}
@@ -461,19 +656,31 @@ function CalendarPageContent() {
 
   const goToPreviousDay = useCallback(() => {
     const prevDate = new Date(currentDate)
-    prevDate.setDate(prevDate.getDate() - 1)
+    if (calendarView === 'resourceTimeGridWeek') {
+      prevDate.setDate(prevDate.getDate() - 7)
+    } else if (calendarView === 'dayGridMonth') {
+      prevDate.setMonth(prevDate.getMonth() - 1)
+    } else {
+      prevDate.setDate(prevDate.getDate() - 1)
+    }
     const newDateStr = getDateKey(prevDate)
     setCurrentDateStr(newDateStr)
     calendarRef.current?.getApi().gotoDate(newDateStr)
-  }, [currentDate])
+  }, [calendarView, currentDate])
 
   const goToNextDay = useCallback(() => {
     const nextDate = new Date(currentDate)
-    nextDate.setDate(nextDate.getDate() + 1)
+    if (calendarView === 'resourceTimeGridWeek') {
+      nextDate.setDate(nextDate.getDate() + 7)
+    } else if (calendarView === 'dayGridMonth') {
+      nextDate.setMonth(nextDate.getMonth() + 1)
+    } else {
+      nextDate.setDate(nextDate.getDate() + 1)
+    }
     const newDateStr = getDateKey(nextDate)
     setCurrentDateStr(newDateStr)
     calendarRef.current?.getApi().gotoDate(newDateStr)
-  }, [currentDate])
+  }, [calendarView, currentDate])
 
   // Handler para clique em evento
   const handleEventClick = useCallback((info: any) => {
@@ -520,13 +727,21 @@ function CalendarPageContent() {
 
   // Formatação da data
   const formattedDate = useMemo(() => {
+    if (calendarView === 'dayGridMonth') {
+      return currentDate.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })
+    }
+
+    if (calendarView === 'resourceTimeGridWeek') {
+      return `Semana de ${currentDate.toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' })}`
+    }
+
     return currentDate.toLocaleDateString('pt-BR', {
       weekday: 'long',
       day: 'numeric',
       month: 'long',
       year: 'numeric'
     })
-  }, [currentDate])
+  }, [calendarView, currentDate])
 
   // Loading inicial
   if (loading && fetchedDateRef.current === '') {
@@ -576,32 +791,133 @@ function CalendarPageContent() {
                 <Play className="w-4 h-4" />
               </button>
             </div>
-            <div className="hidden md:block text-sm font-medium text-gray-700 bg-white rounded-full shadow px-4 py-2">
-              {formattedDate}
-            </div>
+
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  type="button"
+                  className="hidden md:inline-flex items-center gap-2 text-sm font-medium text-gray-700 bg-white rounded-full shadow px-4 py-2 hover:bg-gray-50"
+                  title="Selecionar data"
+                >
+                  {formattedDate}
+                  <ChevronDown className="h-4 w-4" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent sideOffset={10} align="start" className="p-3">
+                <DayPicker
+                  mode="single"
+                  selected={new Date(currentDateStr + 'T12:00:00')}
+                  onSelect={(d) => {
+                    if (!d) return
+                    const newDateStr = getDateKey(d)
+                    setCurrentDateStr(newDateStr)
+                    calendarRef.current?.getApi().gotoDate(newDateStr)
+                  }}
+                  locale={ptBR}
+                />
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
 
           <div className="flex items-center gap-2">
-            <button
-              type="button"
-              className="inline-flex items-center gap-2 bg-white rounded-full shadow px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50"
-              title="Visualização"
-            >
-              <LayoutGrid className="w-4 h-4" />
-              Visualização
-            </button>
+
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  type="button"
+                  className="inline-flex items-center gap-2 bg-white rounded-full shadow px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50"
+                  title="Visualização"
+                >
+                  <LayoutGrid className="w-4 h-4" />
+                  Visualização
+                  <ChevronDown className="h-4 w-4" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent sideOffset={10} align="end" className="min-w-[220px]">
+                <DropdownMenuLabel>Visualização</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onSelect={(e) => {
+                    e.preventDefault()
+                    setCalendarView('resourceTimeGridDay')
+                  }}
+                >
+                  Diário
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onSelect={(e) => {
+                    e.preventDefault()
+                    setCalendarView('resourceTimeGridWeek')
+                  }}
+                >
+                  Semanal
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onSelect={(e) => {
+                    e.preventDefault()
+                    setCalendarView('dayGridMonth')
+                  }}
+                >
+                  Mensal
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  type="button"
+                  className="inline-flex items-center gap-2 bg-white rounded-full shadow px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50"
+                  title="Filtrar"
+                >
+                  <SlidersHorizontal className="w-4 h-4" />
+                  Filtrar
+                  <ChevronDown className="h-4 w-4" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent sideOffset={10} align="end" className="w-[320px] p-4">
+                <div className="flex items-center justify-between">
+                  <div className="text-sm font-semibold text-slate-900">Profissionais</div>
+                  <div className="flex items-center gap-2">
+                    <button type="button" onClick={selectAllProfessionals} className="text-xs font-medium text-slate-500 hover:text-slate-900">
+                      Marcar todos
+                    </button>
+                    <button type="button" onClick={clearProfessionals} className="text-xs font-medium text-slate-500 hover:text-slate-900">
+                      Limpar
+                    </button>
+                  </div>
+                </div>
+                <div className="mt-3 space-y-2 max-h-[220px] overflow-auto pr-1">
+                  {professionals.map((prof) => (
+                    <label key={prof.id} className="flex items-center justify-between rounded-lg bg-slate-50 px-3 py-2 text-sm text-slate-700">
+                      <span className="truncate pr-3">{prof.full_name}</span>
+                      <Checkbox
+                        checked={currentSelectedProfessionalIds.includes(prof.id)}
+                        onCheckedChange={() => toggleProfessionalFilter(prof.id)}
+                      />
+                    </label>
+                  ))}
+                </div>
+
+                <div className="my-4 h-px bg-slate-200" />
+
+                <div className="text-sm font-semibold text-slate-900">Status</div>
+                <div className="mt-3 grid grid-cols-2 gap-2">
+                  {statusOptions.map((st) => (
+                    <label key={st.value} className="flex items-center justify-between rounded-lg bg-slate-50 px-3 py-2 text-sm text-slate-700">
+                      <span>{st.label}</span>
+                      <Checkbox checked={selectedStatusKeys.includes(st.value)} onCheckedChange={() => toggleStatusFilter(st.value)} />
+                    </label>
+                  ))}
+                </div>
+              </DropdownMenuContent>
+            </DropdownMenu>
 
             <button
               type="button"
-              className="inline-flex items-center gap-2 bg-white rounded-full shadow px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50"
-              title="Filtrar"
-            >
-              <SlidersHorizontal className="w-4 h-4" />
-              Filtrar
-            </button>
-
-            <button
-              type="button"
+              onClick={() => {
+                toast.info('Menu de ações em desenvolvimento')
+              }}
               className="inline-flex items-center gap-2 bg-white rounded-full shadow px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50"
               title="Ações"
             >
@@ -638,11 +954,63 @@ function CalendarPageContent() {
         </div>
 
         {/* FullCalendar */}
-        <div className="flex-1 bg-white rounded-lg shadow overflow-hidden">
+        <div className="flex-1 bg-white rounded-lg shadow overflow-hidden relative">
+          {calendarOverlay && (
+            <div className="absolute inset-0 z-30 flex items-center justify-center bg-black/40 backdrop-blur-[1px]">
+              <div className="w-[92vw] max-w-sm overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl">
+                <div className="flex items-center justify-between border-b px-4 py-3">
+                  <div className="flex items-center gap-2">
+                    {calendarOverlay.status === 'loading' || calendarOverlay.status === 'saving' ? (
+                      <div className="h-4 w-4 animate-spin rounded-full border-2 border-slate-300 border-b-slate-700" />
+                    ) : calendarOverlay.status === 'success' ? (
+                      <CheckCircle className="h-4 w-4 text-emerald-600" />
+                    ) : (
+                      <XCircle className="h-4 w-4 text-red-600" />
+                    )}
+                    <div className="text-sm font-semibold text-slate-900">{calendarOverlay.title}</div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={closeCalendarOverlay}
+                    disabled={calendarOverlay.status === 'loading' || calendarOverlay.status === 'saving'}
+                    className="rounded-md p-1 hover:bg-slate-100 disabled:opacity-40"
+                    aria-label="Fechar"
+                    title={calendarOverlay.status === 'loading' || calendarOverlay.status === 'saving' ? 'Aguarde concluir' : 'Fechar'}
+                  >
+                    <X className="h-4 w-4 text-slate-700" />
+                  </button>
+                </div>
+
+                <div className="px-4 py-4 text-sm text-slate-600">
+                  {calendarOverlay.message ||
+                    (calendarOverlay.status === 'loading'
+                      ? 'Carregando...'
+                      : calendarOverlay.status === 'saving'
+                        ? 'Salvando...'
+                        : calendarOverlay.status === 'success'
+                          ? 'Concluído.'
+                          : 'Ocorreu um erro.')}
+                </div>
+
+                {(calendarOverlay.status === 'success' || calendarOverlay.status === 'error') && (
+                  <div className="flex justify-end px-4 pb-4">
+                    <button
+                      type="button"
+                      onClick={closeCalendarOverlay}
+                      className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white hover:bg-primary/90"
+                    >
+                      Fechar
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
           <FullCalendar
             ref={calendarRef}
-            plugins={[resourceTimeGridDay, interactionPlugin]}
-            initialView="resourceTimeGridDay"
+            plugins={[resourceTimeGridPlugin, dayGridPlugin, interactionPlugin]}
+            initialView={calendarView}
             locale={ptBrLocale}
             headerToolbar={false}
             height="auto"

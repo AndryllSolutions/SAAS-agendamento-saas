@@ -24,6 +24,12 @@
     --input: 214.3 31.8% 91.4%;
     --ring: 221.2 83.2% 53.3%;
     --radius: 0.5rem;
+    
+    /* Company Theme Variables */
+    --sidebar-color: #6366f1;
+    --sidebar-hover: rgba(99, 102, 241, 0.1);
+    --sidebar-text: #ffffff;
+    --sidebar-active: rgba(255, 255, 255, 0.2);
   }
 
   .dark {

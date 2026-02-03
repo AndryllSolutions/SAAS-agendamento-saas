@@ -1,0 +1,24 @@
+FROM python:3.11-slim
+
+# Set working directory
+WORKDIR /app
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy requirements
+COPY requirements.txt .
+
+# Install Python dependencies (apenas o necessário para o teste)
+RUN pip install --no-cache-dir \
+    requests \
+    colorama
+
+# Copy application code
+COPY . .
+
+# Run the test
+CMD ["python", "tests/test_all_cruds.py"]
+

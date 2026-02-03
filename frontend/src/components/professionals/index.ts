@@ -1,0 +1,20 @@
+// Export all components for easier imports
+export { default as DrawerStackProvider, useDrawerStack, Drawer } from './DrawerStackManager'
+export { default as EmployeesListPanel } from './EmployeesListPanel'
+export { default as EmployeeDrawer } from './EmployeeDrawer'
+export { default as EmployeeSubnav } from './EmployeeSubnav'
+export { default as PaymentsDrawer } from './PaymentsDrawer'
+export { default as NewItemDrawer } from './NewItemDrawer'
+
+// Sections
+export { default as CadastroSection } from './sections/CadastroSection'
+export { default as EnderecoSection } from './sections/EnderecoSection'
+export { default as UsuarioSection } from './sections/UsuarioSection'
+export { default as AssinaturaSection } from './sections/AssinaturaSection'
+export { default as ExpedienteSection } from './sections/ExpedienteSection'
+export { default as ServicosSection } from './sections/ServicosSection'
+export { default as ComissoesConfigSection } from './sections/ComissoesConfigSection'
+export { default as ComissoesAuxiliaresSection } from './sections/ComissoesAuxiliaresSection'
+export { default as PagarSalarioSection } from './sections/PagarSalarioSection'
+export { default as ValesSection } from './sections/ValesSection'
+export { default as PermissoesSection } from './sections/PermissoesSection'

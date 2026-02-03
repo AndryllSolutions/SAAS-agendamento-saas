@@ -19,6 +19,10 @@ const normalizeUrl = (url: string): string => {
   if (normalized.includes('72.62.138.239') && normalized.startsWith('http://')) {
     normalized = normalized.replace('http://', 'https://');
   }
+
+  if (normalized.includes('atendo.website') && normalized.startsWith('http://')) {
+    normalized = normalized.replace('http://', 'https://');
+  }
   
   return normalized;
 };
@@ -34,6 +38,12 @@ export const getApiUrl = (): string => {
     if (envUrl) {
       return normalizeUrl(envUrl);
     }
+
+    const publicUrl = process.env.NEXT_PUBLIC_URL || process.env.PUBLIC_URL || process.env.FRONTEND_URL;
+    if (publicUrl) {
+      return normalizeUrl(publicUrl);
+    }
+
     return process.env.NODE_ENV === 'production' 
       ? 'https://72.62.138.239' 
       : 'http://localhost:8000';
@@ -47,9 +57,14 @@ export const getApiUrl = (): string => {
     return 'http://localhost:8000';
   }
 
-  // Production VPS: Use domain name for proper CORS
+  // Production: prefer current site origin (works behind nginx + avoids hardcoded localhost)
+  if (window.location.protocol === 'https:') {
+    return `${window.location.protocol}//${window.location.host}`;
+  }
+
+  // Production VPS: Use IP address for direct access
   if (hostname === '72.62.138.239' || hostname === 'atendo.website') {
-    return 'https://atendo.website';
+    return 'https://72.62.138.239';
   }
 
   // Check env var first (for production builds)
@@ -58,13 +73,13 @@ export const getApiUrl = (): string => {
     return normalizeUrl(envUrl);
   }
 
-  // Other production: Use atendo.website for proper CORS
-  return 'https://atendo.website';
+  // Other production: Use IP address for consistency
+  return 'https://72.62.138.239';
 };
 
 /**
  * Get full API v1 base URL (COM /api/v1)
- * Retorna: https://atendo.website/api/v1
+ * Retorna: https://72.62.138.239/api/v1
  */
 export const getApiBaseUrl = (): string => {
   return `${getApiUrl()}/api/v1`;

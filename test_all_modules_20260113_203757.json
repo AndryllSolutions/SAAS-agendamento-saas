@@ -1,0 +1,438 @@
+﻿{
+    "timestamp":  "2026-01-13 20:37:58",
+    "tests":  [
+                  {
+                      "timestamp":  "20:37:58",
+                      "method":  "POST",
+                      "status_code":  200,
+                      "description":  "Login",
+                      "success":  true,
+                      "error":  null,
+                      "endpoint":  "/auth/login/json",
+                      "response":  {
+                                       "access_token":  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI1IiwiZXhwIjoxNzY4MzQ5Mjc4LCJ0eXBlIjoiYWNjZXNzIiwic2NvcGUiOiJjb21wYW55IiwiY29tcGFueV9pZCI6NCwiY29tcGFueV9yb2xlIjoiQ09NUEFOWV9PV05FUiJ9.buIg3q8uC8JevgG0WQifXp2mKbDFcZfb_19efmFP3Mo",
+                                       "refresh_token":  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI1IiwiZXhwIjoxNzY4OTUyMjc4LCJ0eXBlIjoicmVmcmVzaCJ9.9watDM2hIZ6snxEJeuT_X7BUdpIWsYvqD-mQFS78LkY",
+                                       "token_type":  "bearer",
+                                       "user":  {
+                                                    "email":  "andrekaidellisola@gmail.com",
+                                                    "full_name":  "Andre Kaique Dell isola ",
+                                                    "phone":  "11968029600",
+                                                    "role":  "OWNER",
+                                                    "id":  5,
+                                                    "company_id":  4,
+                                                    "is_active":  true,
+                                                    "is_verified":  false,
+                                                    "avatar_url":  null,
+                                                    "bio":  null,
+                                                    "date_of_birth":  null,
+                                                    "gender":  null,
+                                                    "specialties":  null,
+                                                    "working_hours":  null,
+                                                    "commission_rate":  0,
+                                                    "created_at":  "2026-01-13T13:11:38.945611",
+                                                    "updated_at":  "2026-01-13T13:11:38.945616",
+                                                    "saas_role":  null
+                                                }
+                                   }
+                  },
+                  {
+                      "timestamp":  "20:37:59",
+                      "method":  "GET",
+                      "status_code":  200,
+                      "description":  "Listar servicos",
+                      "success":  true,
+                      "error":  null,
+                      "endpoint":  "/services",
+                      "response":  {
+                                       "value":  [
+                                                     {
+                                                         "id":  3,
+                                                         "company_id":  4,
+                                                         "name":  "FormataÃ§Ã£o de computadores ",
+                                                         "description":  "Teste",
+                                                         "price":  "150.00",
+                                                         "duration_minutes":  220,
+                                                         "category_id":  null,
+                                                         "currency":  "BRL",
+                                                         "is_active":  true,
+                                                         "requires_professional":  true,
+                                                         "image_url":  null,
+                                                         "color":  "#3B82F6",
+                                                         "commission_rate":  0,
+                                                         "created_at":  "2026-01-13T13:13:06.010378",
+                                                         "updated_at":  "2026-01-13T13:13:06.010383"
+                                                     }
+                                                 ],
+                                       "Count":  1
+                                   }
+                  },
+                  {
+                      "timestamp":  "20:37:59",
+                      "method":  "POST",
+                      "status_code":  201,
+                      "description":  "Criar servico",
+                      "success":  true,
+                      "error":  null,
+                      "endpoint":  "/services",
+                      "response":  {
+                                       "id":  4,
+                                       "company_id":  4,
+                                       "name":  "Servico Teste CRUD",
+                                       "description":  "Servico criado via teste automatizado",
+                                       "price":  "150.00",
+                                       "duration_minutes":  60,
+                                       "category_id":  null,
+                                       "currency":  "BRL",
+                                       "is_active":  true,
+                                       "requires_professional":  true,
+                                       "image_url":  null,
+                                       "color":  "#3B82F6",
+                                       "commission_rate":  0,
+                                       "created_at":  "2026-01-13T23:37:58.630266",
+                                       "updated_at":  "2026-01-13T23:37:58.630272"
+                                   }
+                  },
+                  {
+                      "timestamp":  "20:37:59",
+                      "method":  "GET",
+                      "status_code":  200,
+                      "description":  "Buscar servico por ID",
+                      "success":  true,
+                      "error":  null,
+                      "endpoint":  "/services/4",
+                      "response":  {
+                                       "id":  4,
+                                       "company_id":  4,
+                                       "name":  "Servico Teste CRUD",
+                                       "description":  "Servico criado via teste automatizado",
+                                       "price":  "150.00",
+                                       "duration_minutes":  60,
+                                       "category_id":  null,
+                                       "currency":  "BRL",
+                                       "is_active":  true,
+                                       "requires_professional":  true,
+                                       "image_url":  null,
+                                       "color":  "#3B82F6",
+                                       "commission_rate":  0,
+                                       "created_at":  "2026-01-13T23:37:58.630266",
+                                       "updated_at":  "2026-01-13T23:37:58.630272"
+                                   }
+                  },
+                  {
+                      "timestamp":  "20:37:59",
+                      "method":  "PUT",
+                      "status_code":  200,
+                      "description":  "Atualizar servico",
+                      "success":  true,
+                      "error":  null,
+                      "endpoint":  "/services/4",
+                      "response":  {
+                                       "id":  4,
+                                       "company_id":  4,
+                                       "name":  "Servico Teste CRUD (Editado)",
+                                       "description":  "Servico criado via teste automatizado",
+                                       "price":  "200.00",
+                                       "duration_minutes":  60,
+                                       "category_id":  null,
+                                       "currency":  "BRL",
+                                       "is_active":  true,
+                                       "requires_professional":  true,
+                                       "image_url":  null,
+                                       "color":  "#3B82F6",
+                                       "commission_rate":  0,
+                                       "created_at":  "2026-01-13T23:37:58.630266",
+                                       "updated_at":  "2026-01-13T23:37:58.752946"
+                                   }
+                  },
+                  {
+                      "timestamp":  "20:37:59",
+                      "method":  "DELETE",
+                      "status_code":  204,
+                      "description":  "Deletar servico",
+                      "success":  true,
+                      "error":  null,
+                      "endpoint":  "/services/4",
+                      "response":  null
+                  },
+                  {
+                      "timestamp":  "20:37:59",
+                      "method":  "GET",
+                      "status_code":  200,
+                      "description":  "Listar produtos",
+                      "success":  true,
+                      "error":  null,
+                      "endpoint":  "/products",
+                      "response":  {
+                                       "value":  [
+                                                     {
+                                                         "id":  2,
+                                                         "company_id":  4,
+                                                         "name":  "PÃ",
+                                                         "description":  "",
+                                                         "stock":  20,
+                                                         "stock_minimum":  10,
+                                                         "unit":  "UN",
+                                                         "cost":  "211.00",
+                                                         "price":  "520.00",
+                                                         "commission_percentage":  25,
+                                                         "barcode":  "WCCWC",
+                                                         "brand_id":  null,
+                                                         "category_id":  null,
+                                                         "is_active":  true,
+                                                         "images":  null,
+                                                         "image_url":  null,
+                                                         "created_at":  "2026-01-13T19:29:55.963285",
+                                                         "updated_at":  "2026-01-13T19:29:55.963291"
+                                                     },
+                                                     {
+                                                         "id":  1,
+                                                         "company_id":  4,
+                                                         "name":  "SHAMPO ",
+                                                         "description":  "",
+                                                         "stock":  10,
+                                                         "stock_minimum":  5,
+                                                         "unit":  "UN",
+                                                         "cost":  "100.00",
+                                                         "price":  "350.00",
+                                                         "commission_percentage":  10,
+                                                         "barcode":  "",
+                                                         "brand_id":  null,
+                                                         "category_id":  null,
+                                                         "is_active":  true,
+                                                         "images":  null,
+                                                         "image_url":  null,
+                                                         "created_at":  "2026-01-13T19:25:30.810513",
+                                                         "updated_at":  "2026-01-13T19:25:30.810520"
+                                                     }
+                                                 ],
+                                       "Count":  2
+                                   }
+                  },
+                  {
+                      "timestamp":  "20:37:59",
+                      "method":  "POST",
+                      "status_code":  422,
+                      "description":  "Criar produto",
+                      "success":  false,
+                      "error":  "O servidor remoto retornou um erro: (422) Unprocessable Entity.",
+                      "endpoint":  "/products",
+                      "response":  {
+                                       "error":  "VALIDATION_ERROR",
+                                       "message":  "Erro de validação nos dados enviados"
+                                   }
+                  },
+                  {
+                      "timestamp":  "20:37:59",
+                      "method":  "GET",
+                      "status_code":  200,
+                      "description":  "Listar profissionais",
+                      "success":  true,
+                      "error":  null,
+                      "endpoint":  "/professionals",
+                      "response":  {
+                                       "value":  [
+
+                                                 ],
+                                       "Count":  0
+                                   }
+                  },
+                  {
+                      "timestamp":  "20:37:59",
+                      "method":  "POST",
+                      "status_code":  201,
+                      "description":  "Criar profissional",
+                      "success":  true,
+                      "error":  null,
+                      "endpoint":  "/professionals",
+                      "response":  {
+                                       "email":  "profissional.teste@example.com",
+                                       "full_name":  "Profissional Teste CRUD",
+                                       "phone":  "(11) 99999-8888",
+                                       "role":  "PROFESSIONAL",
+                                       "id":  6,
+                                       "company_id":  4,
+                                       "is_active":  true,
+                                       "is_verified":  false,
+                                       "avatar_url":  null,
+                                       "bio":  null,
+                                       "date_of_birth":  null,
+                                       "gender":  null,
+                                       "specialties":  null,
+                                       "working_hours":  null,
+                                       "commission_rate":  0,
+                                       "created_at":  "2026-01-13T23:37:59.210122",
+                                       "updated_at":  "2026-01-13T23:37:59.210129",
+                                       "saas_role":  null
+                                   }
+                  },
+                  {
+                      "timestamp":  "20:37:59",
+                      "method":  "GET",
+                      "status_code":  200,
+                      "description":  "Buscar profissional por ID",
+                      "success":  true,
+                      "error":  null,
+                      "endpoint":  "/professionals/6",
+                      "response":  {
+                                       "email":  "profissional.teste@example.com",
+                                       "full_name":  "Profissional Teste CRUD",
+                                       "phone":  "(11) 99999-8888",
+                                       "role":  "PROFESSIONAL",
+                                       "id":  6,
+                                       "company_id":  4,
+                                       "is_active":  true,
+                                       "is_verified":  false,
+                                       "avatar_url":  null,
+                                       "bio":  null,
+                                       "date_of_birth":  null,
+                                       "gender":  null,
+                                       "specialties":  null,
+                                       "working_hours":  null,
+                                       "commission_rate":  0,
+                                       "created_at":  "2026-01-13T23:37:59.210122",
+                                       "updated_at":  "2026-01-13T23:37:59.210129",
+                                       "saas_role":  null
+                                   }
+                  },
+                  {
+                      "timestamp":  "20:37:59",
+                      "method":  "PUT",
+                      "status_code":  200,
+                      "description":  "Atualizar profissional",
+                      "success":  true,
+                      "error":  null,
+                      "endpoint":  "/professionals/6",
+                      "response":  {
+                                       "email":  "profissional.teste@example.com",
+                                       "full_name":  "Profissional Teste CRUD (Editado)",
+                                       "phone":  "(11) 99999-8888",
+                                       "role":  "PROFESSIONAL",
+                                       "id":  6,
+                                       "company_id":  4,
+                                       "is_active":  true,
+                                       "is_verified":  false,
+                                       "avatar_url":  null,
+                                       "bio":  null,
+                                       "date_of_birth":  null,
+                                       "gender":  null,
+                                       "specialties":  null,
+                                       "working_hours":  null,
+                                       "commission_rate":  0,
+                                       "created_at":  "2026-01-13T23:37:59.210122",
+                                       "updated_at":  "2026-01-13T23:37:59.308541",
+                                       "saas_role":  null
+                                   }
+                  },
+                  {
+                      "timestamp":  "20:37:59",
+                      "method":  "DELETE",
+                      "status_code":  204,
+                      "description":  "Deletar profissional",
+                      "success":  true,
+                      "error":  null,
+                      "endpoint":  "/professionals/6",
+                      "response":  null
+                  },
+                  {
+                      "timestamp":  "20:38:00",
+                      "method":  "GET",
+                      "status_code":  200,
+                      "description":  "Listar categorias de produto",
+                      "success":  true,
+                      "error":  null,
+                      "endpoint":  "/products/categories",
+                      "response":  {
+                                       "value":  [
+
+                                                 ],
+                                       "Count":  0
+                                   }
+                  },
+                  {
+                      "timestamp":  "20:38:00",
+                      "method":  "POST",
+                      "status_code":  422,
+                      "description":  "Criar categoria de produto",
+                      "success":  false,
+                      "error":  "O servidor remoto retornou um erro: (422) Unprocessable Entity.",
+                      "endpoint":  "/products/categories",
+                      "response":  {
+                                       "error":  "VALIDATION_ERROR",
+                                       "message":  "Erro de validação nos dados enviados"
+                                   }
+                  },
+                  {
+                      "timestamp":  "20:38:00",
+                      "method":  "GET",
+                      "status_code":  200,
+                      "description":  "Listar agendamentos",
+                      "success":  true,
+                      "error":  null,
+                      "endpoint":  "/appointments",
+                      "response":  {
+                                       "value":  [
+
+                                                 ],
+                                       "Count":  0
+                                   }
+                  },
+                  {
+                      "timestamp":  "20:38:00",
+                      "method":  "POST",
+                      "status_code":  404,
+                      "description":  "Criar agendamento",
+                      "success":  false,
+                      "error":  "O servidor remoto retornou um erro: (404) Não Localizado.",
+                      "endpoint":  "/appointments",
+                      "response":  {
+                                       "error":  "NOT_FOUND",
+                                       "message":  "Serviço não encontrado"
+                                   }
+                  },
+                  {
+                      "timestamp":  "20:38:00",
+                      "method":  "GET",
+                      "status_code":  200,
+                      "description":  "Listar comandas",
+                      "success":  true,
+                      "error":  null,
+                      "endpoint":  "/commands",
+                      "response":  {
+                                       "value":  [
+
+                                                 ],
+                                       "Count":  0
+                                   }
+                  },
+                  {
+                      "timestamp":  "20:38:00",
+                      "method":  "GET",
+                      "status_code":  200,
+                      "description":  "Listar pacotes predefinidos",
+                      "success":  true,
+                      "error":  null,
+                      "endpoint":  "/packages/predefined",
+                      "response":  {
+                                       "value":  [
+
+                                                 ],
+                                       "Count":  0
+                                   }
+                  },
+                  {
+                      "timestamp":  "20:38:00",
+                      "method":  "GET",
+                      "status_code":  200,
+                      "description":  "Listar pacotes",
+                      "success":  true,
+                      "error":  null,
+                      "endpoint":  "/packages",
+                      "response":  {
+                                       "value":  [
+
+                                                 ],
+                                       "Count":  0
+                                   }
+                  }
+              ]
+}

@@ -1,0 +1,137 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:16-alpine
+    container_name: evolution_postgres
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-evolution}
+      POSTGRES_USER: ${POSTGRES_USER:-evolution}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-evolution}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - evolution_network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-evolution} -d ${POSTGRES_DB:-evolution}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: evolution_redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - evolution_network
+    command: ["redis-server", "--appendonly", "yes", "--maxmemory", "512mb", "--maxmemory-policy", "allkeys-lru"]
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 5s
+
+  # Evolution API v2.1.0 (Testing - may not have Pino bug)
+  evolution:
+    image: atendai/evolution-api:v2.1.0
+    container_name: evolution_api
+    env_file:
+      - .env
+    environment:
+      # Database Configuration
+      DATABASE_ENABLED: "true"
+      DATABASE_PROVIDER: "postgresql"
+      DATABASE_CONNECTION_URI: "postgresql://evolution:evolution@postgres:5432/evolution?schema=public"
+      
+      # Redis Cache Configuration - OFFICIAL v2 (CACHE_REDIS_*)
+      CACHE_REDIS_ENABLED: "true"
+      CACHE_REDIS_URI: "redis://redis:6379/6"
+      CACHE_REDIS_PREFIX_KEY: "evolution"
+      CACHE_REDIS_SAVE_INSTANCES: "true"
+      CACHE_LOCAL_ENABLED: "false"
+      
+      # Server Configuration
+      SERVER_TYPE: "${SERVER_TYPE:-http}"
+      SERVER_PORT: "${SERVER_PORT:-8080}"
+      SERVER_URL: "${SERVER_URL:-http://localhost:8080}"
+      
+      # Authentication
+      AUTHENTICATION_TYPE: "${AUTHENTICATION_TYPE:-apikey}"
+      AUTHENTICATION_API_KEY: "${AUTHENTICATION_API_KEY:-B6D711FCDE4D4FD5936544120E713976}"
+      AUTHENTICATION_EXPOSE_IN_FETCH_INSTANCES: "${AUTHENTICATION_EXPOSE_IN_FETCH_INSTANCES:-true}"
+      
+      # Session Configuration - CRITICAL for QR Code
+      CONFIG_SESSION_PHONE_CLIENT: "${CONFIG_SESSION_PHONE_CLIENT:-Evolution API}"
+      CONFIG_SESSION_PHONE_NAME: "${CONFIG_SESSION_PHONE_NAME:-Chrome}"
+      CONFIG_SESSION_PHONE_VERSION: "${CONFIG_SESSION_PHONE_VERSION:-2.3000.1023204200}"
+      
+      # Language
+      LANGUAGE: "${LANGUAGE:-pt-BR}"
+      
+      # Logging
+      LOG_LEVEL: "${LOG_LEVEL:-ERROR,WARN,DEBUG,INFO,LOG,VERBOSE,DARK,WEBHOOKS}"
+      LOG_COLOR: "${LOG_COLOR:-true}"
+      LOG_BAILEYS: "${LOG_BAILEYS:-false}"
+      
+      # QR Code
+      QRCODE_LIMIT: "${QRCODE_LIMIT:-30}"
+      QRCODE_COLOR: "${QRCODE_COLOR:-#198754}"
+      
+      # Instance Management
+      DEL_INSTANCE: "${DEL_INSTANCE:-false}"
+      
+      # Webhooks
+      WEBHOOK_GLOBAL_ENABLED: "${WEBHOOK_GLOBAL_ENABLED:-false}"
+      WEBHOOK_GLOBAL_URL: "${WEBHOOK_GLOBAL_URL:-}"
+      WEBHOOK_GLOBAL_WEBHOOK_BY_EVENTS: "${WEBHOOK_GLOBAL_WEBHOOK_BY_EVENTS:-false}"
+      
+      # RabbitMQ (disabled by default)
+      RABBITMQ_ENABLED: "${RABBITMQ_ENABLED:-false}"
+      
+      # Websocket (disabled by default)
+      WEBSOCKET_ENABLED: "${WEBSOCKET_ENABLED:-false}"
+      
+    ports:
+      - "8080:8080"
+    volumes:
+      - evolution_instances:/evolution/instances
+      - evolution_store:/evolution/store
+    networks:
+      - evolution_network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080 || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  evolution_instances:
+    driver: local
+  evolution_store:
+    driver: local
+
+networks:
+  evolution_network:
+    driver: bridge

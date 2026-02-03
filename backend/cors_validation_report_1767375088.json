@@ -1,0 +1,116 @@
+{
+  "timestamp": "2026-01-02 17:31:28",
+  "summary": {
+    "total": 10,
+    "passed": 3,
+    "failed": 4,
+    "warnings": 0,
+    "info": 3
+  },
+  "configuration": {
+    "cors_origins": [
+      "http://localhost:3000",
+      "http://localhost:3001",
+      "http://localhost:3002",
+      "http://127.0.0.1:3000",
+      "http://127.0.0.1:3001",
+      "http://127.0.0.1:3002",
+      "https://ce91f5d926c2.ngrok-free.app"
+    ],
+    "cors_allow_all": false,
+    "environment": "development"
+  },
+  "results": [
+    {
+      "test": "Configuração CORS Atual",
+      "status": "INFO",
+      "details": "Origins: 7, Allow All: False",
+      "timestamp": "2026-01-02 17:31:28",
+      "data": {
+        "cors_origins": [
+          "http://localhost:3000",
+          "http://localhost:3001",
+          "http://localhost:3002",
+          "http://127.0.0.1:3000",
+          "http://127.0.0.1:3001",
+          "http://127.0.0.1:3002",
+          "https://ce91f5d926c2.ngrok-free.app"
+        ],
+        "cors_allow_all": false,
+        "frontend_url": "https://ce91f5d926c2.ngrok-free.app",
+        "public_url": "https://ce91f5d926c2.ngrok-free.app",
+        "debug": true,
+        "environment": "development"
+      }
+    },
+    {
+      "test": "Origens Ngrok Configuradas",
+      "status": "INFO",
+      "details": "1 origens ngrok encontradas",
+      "timestamp": "2026-01-02 17:31:28",
+      "data": {}
+    },
+    {
+      "test": "Obtenção de Token",
+      "status": "FAIL",
+      "details": "Não foi possível obter token de autenticação",
+      "timestamp": "2026-01-02 17:31:28",
+      "data": {}
+    },
+    {
+      "test": "Regex Ngrok - https://abc123.ngrok-free.app",
+      "status": "PASS",
+      "details": "Match: True, deve permitir",
+      "timestamp": "2026-01-02 17:31:28",
+      "data": {}
+    },
+    {
+      "test": "Regex Ngrok - https://test-456.ngrok.io",
+      "status": "PASS",
+      "details": "Match: True, deve permitir",
+      "timestamp": "2026-01-02 17:31:28",
+      "data": {}
+    },
+    {
+      "test": "Regex Ngrok - https://my-tunnel.ngrok-free.app",
+      "status": "PASS",
+      "details": "Match: True, deve permitir",
+      "timestamp": "2026-01-02 17:31:28",
+      "data": {}
+    },
+    {
+      "test": "Regex Ngrok - https://invalid.ngrok.com",
+      "status": "FAIL",
+      "details": "Match: False, não deve permitir",
+      "timestamp": "2026-01-02 17:31:28",
+      "data": {}
+    },
+    {
+      "test": "Regex Ngrok - https://other-domain.com",
+      "status": "FAIL",
+      "details": "Match: False, não deve permitir",
+      "timestamp": "2026-01-02 17:31:28",
+      "data": {}
+    },
+    {
+      "test": "Headers de Segurança",
+      "status": "INFO",
+      "details": "Headers presentes no response",
+      "timestamp": "2026-01-02 17:31:28",
+      "data": {
+        "x_content_type_options": null,
+        "x_frame_options": null,
+        "x_xss_protection": null,
+        "strict_transport_security": null,
+        "content_security_policy": null
+      }
+    },
+    {
+      "test": "Teste Credentials",
+      "status": "FAIL",
+      "details": "Token não disponível",
+      "timestamp": "2026-01-02 17:31:28",
+      "data": {}
+    }
+  ]
+}

@@ -1,14 +1,14 @@
 """
 Payments Endpoints
 """
-from typing import List
+from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, status, Request
 from sqlalchemy.orm import Session
 from datetime import datetime
 
 from app.core.database import get_db
 from app.core.security import get_current_active_user, require_manager
-from app.models.payment import Payment, PaymentStatus, Plan, Subscription
+from app.models.payment import Payment, PaymentStatus, PackagePlan, PackageSubscription
 from app.models.user import User
 from app.schemas.payment import (
     PaymentCreate,
@@ -21,35 +21,98 @@ from app.schemas.payment import (
     SubscriptionCreate,
     SubscriptionResponse,
 )
+from app.services.payment_service import PaymentService
 
-router = APIRouter()
+router = APIRouter(
+    redirect_slashes=False  # 🔥 DESATIVA REDIRECT AUTOMÁTICO - CORS FIX
+)
 
 
 # Payments
-@router.post("/", response_model=PaymentResponse, status_code=status.HTTP_201_CREATED)
+@router.post("", response_model=PaymentResponse, status_code=status.HTTP_201_CREATED)
+@router.post("/", response_model=PaymentResponse, status_code=status.HTTP_201_CREATED, include_in_schema=False)
 async def create_payment(
     payment_data: PaymentCreate,
     current_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db)
 ):
     """
-    Create a payment
+    Create a payment and process with gateway
     """
+    role_value = current_user.role.value if hasattr(current_user.role, "value") else str(current_user.role)
+    target_user_id = payment_data.user_id or current_user.id
+
+    # Clients can only create payments for themselves
+    if role_value == "CLIENT":
+        target_user_id = current_user.id
+
+    # Get user info for payment
+    user = db.query(User).filter(
+        User.id == target_user_id,
+        User.company_id == current_user.company_id
+    ).first()
+
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Usuário não encontrado"
+        )
+    
+    payment_dict = payment_data.model_dump(exclude={'user_id'}, exclude_none=True)
+
+    # Create payment record
     payment = Payment(
-        **payment_data.dict(),
-        company_id=current_user.company_id
+        **payment_dict,
+        company_id=current_user.company_id,
+        user_id=target_user_id,
+        status=PaymentStatus.PENDING
     )
     
     db.add(payment)
     db.commit()
     db.refresh(payment)
     
-    # TODO: Process payment with gateway
+    # Process payment with gateway if gateway is specified
+    if payment_data.gateway and payment_data.gateway.lower() in ["mercadopago", "stripe"]:
+        try:
+            gateway_result = PaymentService.create_payment(
+                gateway=payment_data.gateway,
+                amount=float(payment_data.amount),
+                description=f"Pagamento #{payment.id}",
+                payer_email=user.email if user else current_user.email,
+                payer_name=user.full_name if user else current_user.full_name,
+                payer_phone=getattr(user, 'phone', None) if user else None,
+                external_reference=str(payment.id),
+                metadata={
+                    "payment_id": payment.id,
+                    "company_id": current_user.company_id,
+                    "user_id": target_user_id
+                }
+            )
+            
+            # Update payment with gateway response
+            payment.gateway_transaction_id = gateway_result.get("transaction_id") or gateway_result.get("id")
+            payment.gateway_response = gateway_result
+            payment.payment_url = gateway_result.get("payment_url")
+            
+            # For Pix payments, store QR code
+            if gateway_result.get("qr_code"):
+                payment.gateway_response["qr_code"] = gateway_result.get("qr_code")
+                payment.gateway_response["qr_code_base64"] = gateway_result.get("qr_code_base64")
+            
+            db.commit()
+            db.refresh(payment)
+        except Exception as e:
+            # Log error but don't fail payment creation
+            payment.gateway_response = {"error": str(e)}
+            payment.status = PaymentStatus.FAILED
+            db.commit()
     
-    return payment
+    return PaymentResponse.model_validate(payment)
 
 
-@router.get("/", response_model=List[PaymentResponse])
+@router.get("", response_model=List[PaymentResponse])
+@router.get("/", response_model=List[PaymentResponse], include_in_schema=False)
 async def list_payments(
     status_filter: str = None,
     skip: int = 0,
@@ -61,15 +124,16 @@ async def list_payments(
     List payments
     """
     query = db.query(Payment).filter(Payment.company_id == current_user.company_id)
-    
-    if current_user.role == "client":
+
+    role_value = current_user.role.value if hasattr(current_user.role, "value") else str(current_user.role)
+    if role_value == "CLIENT":
         query = query.filter(Payment.user_id == current_user.id)
     
     if status_filter:
         query = query.filter(Payment.status == status_filter)
     
     payments = query.order_by(Payment.created_at.desc()).offset(skip).limit(limit).all()
-    return payments
+    return [PaymentResponse.model_validate(p) for p in payments]
 
 
 @router.get("/{payment_id}", response_model=PaymentResponse)
@@ -92,13 +156,14 @@ async def get_payment(
             detail="Pagamento não encontrado"
         )
     
-    if current_user.role == "client" and payment.user_id != current_user.id:
+    role_value = current_user.role.value if hasattr(current_user.role, "value") else str(current_user.role)
+    if role_value == "CLIENT" and payment.user_id != current_user.id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Sem permissão para acessar este pagamento"
         )
     
-    return payment
+    return PaymentResponse.model_validate(payment)
 
 
 @router.post("/webhook", status_code=status.HTTP_200_OK)
@@ -147,7 +212,7 @@ async def create_plan(
     """
     Create a plan (Manager/Admin only)
     """
-    plan = Plan(
+    plan = PackagePlan(
         **plan_data.dict(),
         company_id=current_user.company_id
     )
@@ -156,7 +221,7 @@ async def create_plan(
     db.commit()
     db.refresh(plan)
     
-    return plan
+    return PlanResponse.model_validate(plan)
 
 
 @router.get("/plans", response_model=List[PlanResponse])
@@ -167,12 +232,12 @@ async def list_plans(
     """
     List plans
     """
-    plans = db.query(Plan).filter(
-        Plan.company_id == current_user.company_id,
-        Plan.is_active == True
+    plans = db.query(PackagePlan).filter(
+        PackagePlan.company_id == current_user.company_id,
+        PackagePlan.is_active == True
     ).all()
     
-    return plans
+    return [PlanResponse.model_validate(p) for p in plans]
 
 
 @router.put("/plans/{plan_id}", response_model=PlanResponse)
@@ -185,9 +250,9 @@ async def update_plan(
     """
     Update plan (Manager/Admin only)
     """
-    plan = db.query(Plan).filter(
-        Plan.id == plan_id,
-        Plan.company_id == current_user.company_id
+    plan = db.query(PackagePlan).filter(
+        PackagePlan.id == plan_id,
+        PackagePlan.company_id == current_user.company_id
     ).first()
     
     if not plan:
@@ -203,7 +268,7 @@ async def update_plan(
     db.commit()
     db.refresh(plan)
     
-    return plan
+    return PlanResponse.model_validate(plan)
 
 
 # Subscriptions
@@ -216,9 +281,9 @@ async def create_subscription(
     """
     Create a subscription
     """
-    plan = db.query(Plan).filter(
-        Plan.id == subscription_data.plan_id,
-        Plan.company_id == current_user.company_id
+    plan = db.query(PackagePlan).filter(
+        PackagePlan.id == subscription_data.plan_id,
+        PackagePlan.company_id == current_user.company_id
     ).first()
     
     if not plan:
@@ -229,7 +294,7 @@ async def create_subscription(
     
     from datetime import timedelta
     
-    subscription = Subscription(
+    subscription = PackageSubscription(
         company_id=current_user.company_id,
         user_id=subscription_data.user_id,
         plan_id=subscription_data.plan_id,
@@ -243,7 +308,7 @@ async def create_subscription(
     db.commit()
     db.refresh(subscription)
     
-    return subscription
+    return SubscriptionResponse.model_validate(subscription)
 
 
 @router.get("/subscriptions", response_model=List[SubscriptionResponse])
@@ -254,10 +319,230 @@ async def list_subscriptions(
     """
     List subscriptions
     """
-    query = db.query(Subscription).filter(Subscription.company_id == current_user.company_id)
+    query = db.query(PackageSubscription).filter(PackageSubscription.company_id == current_user.company_id)
     
     if current_user.role == "client":
-        query = query.filter(Subscription.user_id == current_user.id)
+        query = query.filter(PackageSubscription.user_id == current_user.id)
     
     subscriptions = query.all()
-    return subscriptions
+    return [SubscriptionResponse.model_validate(s) for s in subscriptions]
+
+
+@router.put("/{payment_id}", response_model=PaymentResponse)
+async def update_payment(
+    payment_id: int,
+    payment_data: PaymentUpdate,
+    current_user: User = Depends(require_manager),
+    db: Session = Depends(get_db)
+):
+    """Update payment (Manager/Admin only)"""
+    payment = db.query(Payment).filter(
+        Payment.id == payment_id,
+        Payment.company_id == current_user.company_id
+    ).first()
+    
+    if not payment:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Pagamento não encontrado"
+        )
+    
+    # Only allow update if payment is pending
+    if payment.status != PaymentStatus.PENDING:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Não é possível atualizar pagamento que não está pendente"
+        )
+    
+    update_data = payment_data.dict(exclude_unset=True)
+    for field, value in update_data.items():
+        setattr(payment, field, value)
+    
+    db.commit()
+    db.refresh(payment)
+    
+    return PaymentResponse.model_validate(payment)
+
+
+@router.delete("/{payment_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_payment(
+    payment_id: int,
+    current_user: User = Depends(require_manager),
+    db: Session = Depends(get_db)
+):
+    """Cancel/Delete payment (Manager/Admin only)"""
+    payment = db.query(Payment).filter(
+        Payment.id == payment_id,
+        Payment.company_id == current_user.company_id
+    ).first()
+    
+    if not payment:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Pagamento não encontrado"
+        )
+    
+    # Only allow delete if payment is pending or failed
+    if payment.status not in [PaymentStatus.PENDING, PaymentStatus.FAILED]:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Não é possível deletar pagamento que não está pendente ou falhou"
+        )
+    
+    payment.status = PaymentStatus.CANCELLED
+    db.commit()
+    
+    return None
+
+
+@router.post("/{payment_id}/refund", response_model=PaymentResponse)
+async def refund_payment(
+    payment_id: int,
+    amount: Optional[float] = None,
+    current_user: User = Depends(require_manager),
+    db: Session = Depends(get_db)
+):
+    """Refund payment (Manager/Admin only)"""
+    payment = db.query(Payment).filter(
+        Payment.id == payment_id,
+        Payment.company_id == current_user.company_id
+    ).first()
+    
+    if not payment:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Pagamento não encontrado"
+        )
+    
+    if payment.status != PaymentStatus.COMPLETED:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Apenas pagamentos completados podem ser reembolsados"
+        )
+    
+    if not payment.gateway or not payment.gateway_transaction_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Pagamento não possui gateway configurado"
+        )
+    
+    # Process refund with payment gateway
+    try:
+        refund_result = PaymentService.refund_payment(
+            gateway=payment.gateway,
+            payment_id=payment.gateway_transaction_id,
+            amount=amount
+        )
+        
+        payment.status = PaymentStatus.REFUNDED
+        payment.refunded_at = datetime.utcnow()
+        payment.gateway_response = payment.gateway_response or {}
+        payment.gateway_response["refund"] = refund_result
+        
+        db.commit()
+        db.refresh(payment)
+        
+        return PaymentResponse.model_validate(payment)
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Erro ao processar reembolso: {str(e)}"
+        )
+
+
+@router.post("/webhook/{gateway}", status_code=status.HTTP_200_OK)
+async def payment_webhook_by_gateway(
+    gateway: str,
+    request: Request,
+    db: Session = Depends(get_db)
+):
+    """Webhook endpoint for specific payment gateway"""
+    import hmac
+    import hashlib
+    import json
+    
+    body = await request.body()
+    body_json = await request.json()
+    
+    # Verify webhook signature based on gateway
+    if gateway.lower() == "stripe" and settings.STRIPE_WEBHOOK_SECRET:
+        sig_header = request.headers.get("stripe-signature")
+        if sig_header:
+            try:
+                import stripe
+                stripe.api_key = settings.STRIPE_SECRET_KEY
+                event = stripe.Webhook.construct_event(
+                    body, sig_header, settings.STRIPE_WEBHOOK_SECRET
+                )
+                body_json = event
+            except ValueError as e:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Invalid webhook signature: {str(e)}"
+                )
+    
+    # Get transaction ID from webhook data
+    transaction_id = None
+    if gateway.lower() == "mercadopago":
+        transaction_id = body_json.get("data", {}).get("id") or body_json.get("id")
+    elif gateway.lower() == "stripe":
+        if body_json.get("type") == "payment_intent.succeeded":
+            transaction_id = body_json.get("data", {}).get("object", {}).get("id")
+        else:
+            transaction_id = body_json.get("data", {}).get("object", {}).get("payment_intent")
+    
+    if not transaction_id:
+        transaction_id = body_json.get("transaction_id") or body_json.get("id")
+    
+    if not transaction_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Transaction ID não encontrado no webhook"
+        )
+    
+    payment = db.query(Payment).filter(
+        Payment.gateway_transaction_id == str(transaction_id),
+        Payment.gateway == gateway.lower()
+    ).first()
+    
+    if not payment:
+        # Try to get payment status from gateway
+        try:
+            gateway_status = PaymentService.get_payment_status(gateway.lower(), str(transaction_id))
+            # If payment not found in DB, just acknowledge webhook
+            return {"status": "ok", "message": "Payment not found in database"}
+        except:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Pagamento não encontrado"
+            )
+    
+    # Update payment status based on gateway response
+    webhook_status = None
+    if gateway.lower() == "mercadopago":
+        webhook_status = body_json.get("action") or body_json.get("data", {}).get("status")
+    elif gateway.lower() == "stripe":
+        if body_json.get("type") == "payment_intent.succeeded":
+            webhook_status = "succeeded"
+        elif body_json.get("type") == "payment_intent.payment_failed":
+            webhook_status = "failed"
+    
+    if not webhook_status:
+        webhook_status = body_json.get("status") or body_json.get("state")
+    
+    if webhook_status in ["approved", "paid", "completed", "success", "succeeded"]:
+        payment.status = PaymentStatus.COMPLETED
+        payment.paid_at = datetime.utcnow()
+    elif webhook_status in ["rejected", "failed", "error", "payment_failed"]:
+        payment.status = PaymentStatus.FAILED
+    elif webhook_status in ["refunded", "reversed"]:
+        payment.status = PaymentStatus.REFUNDED
+        payment.refunded_at = datetime.utcnow()
+    
+    # Update gateway response
+    payment.gateway_response = payment.gateway_response or {}
+    payment.gateway_response["webhook"] = body_json
+    
+    db.commit()
+    
+    return {"status": "ok", "payment_id": payment.id}

@@ -9,9 +9,11 @@ interface ClientModalProps {
   onSubmit: (data: any) => void
   initialData?: any
   loading?: boolean
+  mode?: 'create' | 'edit' | 'view'
 }
 
-const ClientModal = ({ isOpen, onClose, onSubmit, initialData, loading }: ClientModalProps) => {
+const ClientModal = ({ isOpen, onClose, onSubmit, initialData, loading, mode }: ClientModalProps) => {
+  const viewOnly = mode === 'view'
   const [activeTab, setActiveTab] = useState('cadastro')
   const [formData, setFormData] = useState({
     // Identificação
@@ -114,6 +116,8 @@ const ClientModal = ({ isOpen, onClose, onSubmit, initialData, loading }: Client
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
+
+    if (viewOnly) return
     
     // Validação básica
     if (!formData.full_name.trim()) {
@@ -155,7 +159,7 @@ const ClientModal = ({ isOpen, onClose, onSubmit, initialData, loading }: Client
         {/* Header */}
         <div className="p-6 border-b flex items-center justify-between">
           <h2 className="text-xl font-bold">
-            {initialData ? 'Editar Cliente' : 'Novo Cliente'}
+            {viewOnly ? 'Detalhes do Cliente' : initialData ? 'Editar Cliente' : 'Novo Cliente'}
           </h2>
           <button
             onClick={onClose}
@@ -205,7 +209,8 @@ const ClientModal = ({ isOpen, onClose, onSubmit, initialData, loading }: Client
                     </div>
                     <button
                       type="button"
-                      className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+                      disabled={viewOnly}
+                      className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       Alterar Foto
                     </button>
@@ -222,45 +227,50 @@ const ClientModal = ({ isOpen, onClose, onSubmit, initialData, loading }: Client
                         <input
                           type="text"
                           required
+                          readOnly={viewOnly}
                           value={formData.full_name}
                           onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary read-only:bg-gray-50"
                         />
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Apelido</label>
                         <input
                           type="text"
+                          readOnly={viewOnly}
                           value={formData.nickname}
                           onChange={(e) => setFormData({ ...formData, nickname: e.target.value })}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary read-only:bg-gray-50"
                         />
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Celular</label>
                         <input
                           type="tel"
+                          readOnly={viewOnly}
                           value={formData.cellphone}
                           onChange={(e) => setFormData({ ...formData, cellphone: e.target.value })}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary read-only:bg-gray-50"
                         />
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Telefone</label>
                         <input
                           type="tel"
+                          readOnly={viewOnly}
                           value={formData.phone}
                           onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary read-only:bg-gray-50"
                         />
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">E-mail</label>
                         <input
                           type="email"
+                          readOnly={viewOnly}
                           value={formData.email}
                           onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary read-only:bg-gray-50"
                         />
                       </div>
                     </div>
@@ -276,18 +286,20 @@ const ClientModal = ({ isOpen, onClose, onSubmit, initialData, loading }: Client
                         </label>
                         <input
                           type="date"
+                          readOnly={viewOnly}
                           value={formData.date_of_birth}
                           onChange={(e) => setFormData({ ...formData, date_of_birth: e.target.value })}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary read-only:bg-gray-50"
                         />
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">CPF</label>
                         <input
                           type="text"
+                          readOnly={viewOnly}
                           value={formData.cpf}
                           onChange={(e) => setFormData({ ...formData, cpf: e.target.value })}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary read-only:bg-gray-50"
                           placeholder="000.000.000-00"
                         />
                       </div>
@@ -295,9 +307,10 @@ const ClientModal = ({ isOpen, onClose, onSubmit, initialData, loading }: Client
                         <label className="block text-sm font-medium text-gray-700 mb-1">CNPJ</label>
                         <input
                           type="text"
+                          readOnly={viewOnly}
                           value={formData.cnpj}
                           onChange={(e) => setFormData({ ...formData, cnpj: e.target.value })}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary read-only:bg-gray-50"
                           placeholder="00.000.000/0000-00"
                         />
                       </div>
@@ -319,9 +332,10 @@ const ClientModal = ({ isOpen, onClose, onSubmit, initialData, loading }: Client
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Indicado por</label>
                         <select
+                          disabled={viewOnly}
                           value={formData.referred_by}
                           onChange={(e) => setFormData({ ...formData, referred_by: e.target.value })}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary disabled:bg-gray-50"
                         >
                           <option value="">Selecione um cliente</option>
                         </select>
@@ -330,12 +344,13 @@ const ClientModal = ({ isOpen, onClose, onSubmit, initialData, loading }: Client
                         <label className="block text-sm font-medium text-gray-700 mb-1">Hashtags</label>
                         <input
                           type="text"
+                          readOnly={viewOnly}
                           value={formData.hashtags.join(', ')}
                           onChange={(e) => setFormData({ 
                             ...formData, 
                             hashtags: e.target.value.split(',').map(t => t.trim()).filter(t => t)
                           })}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary read-only:bg-gray-50"
                           placeholder="ex: cliente-vip, aniversariante, categoria-a"
                         />
                       </div>
@@ -346,9 +361,10 @@ const ClientModal = ({ isOpen, onClose, onSubmit, initialData, loading }: Client
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Observações</label>
                     <textarea
+                      readOnly={viewOnly}
                       value={formData.notes}
                       onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary read-only:bg-gray-50"
                       rows={3}
                       placeholder="Observações internas sobre o cliente..."
                     />
@@ -383,57 +399,64 @@ const ClientModal = ({ isOpen, onClose, onSubmit, initialData, loading }: Client
                 <div className="mt-2 space-y-2">
                   <input
                     type="text"
+                    readOnly={viewOnly}
                     placeholder="Rua, Avenida..."
                     value={formData.address}
                     onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm read-only:bg-gray-50"
                   />
                   <div className="grid grid-cols-2 gap-2">
                     <input
                       type="text"
+                      readOnly={viewOnly}
                       placeholder="Número"
                       value={formData.address_number}
                       onChange={(e) => setFormData({ ...formData, address_number: e.target.value })}
-                      className="px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                      className="px-3 py-2 border border-gray-300 rounded-lg text-sm read-only:bg-gray-50"
                     />
                     <input
                       type="text"
+                      readOnly={viewOnly}
                       placeholder="Complemento"
                       value={formData.address_complement}
                       onChange={(e) => setFormData({ ...formData, address_complement: e.target.value })}
-                      className="px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                      className="px-3 py-2 border border-gray-300 rounded-lg text-sm read-only:bg-gray-50"
                     />
                   </div>
                   <input
                     type="text"
+                    readOnly={viewOnly}
                     placeholder="Bairro"
                     value={formData.neighborhood}
                     onChange={(e) => setFormData({ ...formData, neighborhood: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm read-only:bg-gray-50"
                   />
                   <div className="grid grid-cols-2 gap-2">
                     <input
                       type="text"
+                      readOnly={viewOnly}
                       placeholder="Cidade"
                       value={formData.city}
                       onChange={(e) => setFormData({ ...formData, city: e.target.value })}
-                      className="px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                      className="px-3 py-2 border border-gray-300 rounded-lg text-sm read-only:bg-gray-50"
                     />
                     <input
                       type="text"
+                      readOnly={viewOnly}
                       placeholder="UF"
                       value={formData.state}
                       onChange={(e) => setFormData({ ...formData, state: e.target.value })}
-                      className="px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                      className="px-3 py-2 border border-gray-300 rounded-lg text-sm read-only:bg-gray-50"
                       maxLength={2}
                     />
                   </div>
                   <input
                     type="text"
+                    readOnly={viewOnly}
                     placeholder="CEP"
                     value={formData.zip_code}
                     onChange={(e) => setFormData({ ...formData, zip_code: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm read-only:bg-gray-50"
                   />
                 </div>
               </div>
@@ -455,20 +478,22 @@ const ClientModal = ({ isOpen, onClose, onSubmit, initialData, loading }: Client
                     <span className="absolute left-3 top-2.5 text-gray-400 text-sm">@</span>
                     <input
                       type="text"
+                      readOnly={viewOnly}
                       placeholder="Instagram"
                       value={formData.instagram}
                       onChange={(e) => setFormData({ ...formData, instagram: e.target.value })}
-                      className="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-lg text-sm"
+                      className="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-lg text-sm read-only:bg-gray-50"
                     />
                   </div>
                   <div className="relative">
                     <span className="absolute left-3 top-2.5 text-gray-400 text-sm">@</span>
                     <input
                       type="text"
+                      readOnly={viewOnly}
                       placeholder="Facebook"
                       value={formData.facebook}
                       onChange={(e) => setFormData({ ...formData, facebook: e.target.value })}
-                      className="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-lg text-sm"
+                      className="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-lg text-sm read-only:bg-gray-50"
                     />
                   </div>
                 </div>
@@ -495,9 +520,10 @@ const ClientModal = ({ isOpen, onClose, onSubmit, initialData, loading }: Client
                       type="number"
                       min="0"
                       max="100"
+                      readOnly={viewOnly}
                       value={formData.default_discount}
                       onChange={(e) => setFormData({ ...formData, default_discount: Number(e.target.value) })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm read-only:bg-gray-50"
                     />
                   </div>
                   <div className="space-y-2">
@@ -507,6 +533,7 @@ const ClientModal = ({ isOpen, onClose, onSubmit, initialData, loading }: Client
                         checked={formData.is_active}
                         onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
                         className="mr-2"
+                        disabled={viewOnly}
                       />
                       <span className="text-sm">Ativo</span>
                     </label>
@@ -516,6 +543,7 @@ const ClientModal = ({ isOpen, onClose, onSubmit, initialData, loading }: Client
                         checked={formData.notifications_enabled}
                         onChange={(e) => setFormData({ ...formData, notifications_enabled: e.target.checked })}
                         className="mr-2"
+                        disabled={viewOnly}
                       />
                       <span className="text-sm">Notificações</span>
                     </label>
@@ -525,6 +553,7 @@ const ClientModal = ({ isOpen, onClose, onSubmit, initialData, loading }: Client
                         checked={formData.block_access}
                         onChange={(e) => setFormData({ ...formData, block_access: e.target.checked })}
                         className="mr-2"
+                        disabled={viewOnly}
                       />
                       <span className="text-sm">Bloquear acesso</span>
                     </label>
@@ -536,6 +565,7 @@ const ClientModal = ({ isOpen, onClose, onSubmit, initialData, loading }: Client
                         checked={formData.marketing_whatsapp}
                         onChange={(e) => setFormData({ ...formData, marketing_whatsapp: e.target.checked })}
                         className="mr-2"
+                        disabled={viewOnly}
                       />
                       <span className="text-sm">Marketing WhatsApp</span>
                     </label>
@@ -545,6 +575,7 @@ const ClientModal = ({ isOpen, onClose, onSubmit, initialData, loading }: Client
                         checked={formData.marketing_email}
                         onChange={(e) => setFormData({ ...formData, marketing_email: e.target.checked })}
                         className="mr-2"
+                        disabled={viewOnly}
                       />
                       <span className="text-sm">Marketing E-mail</span>
                     </label>
@@ -562,16 +593,18 @@ const ClientModal = ({ isOpen, onClose, onSubmit, initialData, loading }: Client
             onClick={onClose}
             className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
           >
-            Cancelar
+            {viewOnly ? 'Fechar' : 'Cancelar'}
           </button>
-          <button
-            type="submit"
-            onClick={handleSubmit}
-            disabled={loading}
-            className="flex-1 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 disabled:opacity-50"
-          >
-            {loading ? 'Salvando...' : 'Salvar'}
-          </button>
+          {!viewOnly && (
+            <button
+              type="submit"
+              onClick={handleSubmit}
+              disabled={loading}
+              className="flex-1 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 disabled:opacity-50"
+            >
+              {loading ? 'Salvando...' : 'Salvar'}
+            </button>
+          )}
         </div>
       </div>
     </div>

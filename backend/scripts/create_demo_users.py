@@ -21,7 +21,7 @@ def create_demo_users():
             "full_name": "Admin Demo",
             "email": "admin@demo.com",
             "password": "demo123",
-            "role": UserRole.ADMIN,
+            "role": UserRole.OWNER,
             "phone": "(11) 99999-0001",
             "is_active": True,
             "is_verified": True

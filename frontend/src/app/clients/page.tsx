@@ -19,6 +19,7 @@ export default function ClientsPage() {
   const [loading, setLoading] = useState(true)
   const [showModal, setShowModal] = useState(false)
   const [selectedClient, setSelectedClient] = useState<any>(null)
+  const [modalMode, setModalMode] = useState<'create' | 'edit' | 'view'>('create')
   const [saving, setSaving] = useState(false)
 
   useEffect(() => {
@@ -87,8 +88,10 @@ export default function ClientsPage() {
 
   const handleEdit = (client: any) => {
     setSelectedClient(client)
+    setModalMode('edit')
     setShowModal(true)
   }
+
 
   const columns = [
     { key: 'full_name', label: 'Nome', sortable: true },
@@ -101,11 +104,9 @@ export default function ClientsPage() {
       render: (client: any) => (
         <div className="flex items-center gap-2">
           <button
-            onClick={(e) => {
-              e.stopPropagation()
-              router.push(`/clients/${client.id}`)
-            }}
-            className="p-1 text-blue-600 hover:bg-blue-50 rounded"
+            disabled
+            title="Visualização pelo modal desabilitada"
+            className="p-1 text-gray-400 rounded cursor-not-allowed"
           >
             <Eye className="w-4 h-4" />
           </button>
@@ -228,6 +229,7 @@ export default function ClientsPage() {
               <button
                 onClick={() => {
                   setSelectedClient(null)
+                  setModalMode('create')
                   setShowModal(true)
                 }}
                 className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 flex items-center gap-2"
@@ -251,10 +253,12 @@ export default function ClientsPage() {
           onClose={() => {
             setShowModal(false)
             setSelectedClient(null)
+            setModalMode('create')
           }}
           onSubmit={handleSubmit}
           initialData={selectedClient}
           loading={saving}
+          mode={modalMode}
         />
       </div>
     </DashboardLayout>

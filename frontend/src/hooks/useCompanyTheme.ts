@@ -9,6 +9,63 @@ export const useCompanyTheme = () => {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
+  const normalizeHex = (hex: string) => {
+    const value = hex.trim().replace('#', '')
+    if (value.length === 3) {
+      return `#${value[0]}${value[0]}${value[1]}${value[1]}${value[2]}${value[2]}`.toLowerCase()
+    }
+    if (value.length === 6) return `#${value}`.toLowerCase()
+    return null
+  }
+
+  const parseColorToRgb = (color: string): { r: number; g: number; b: number } | null => {
+    const trimmed = (color || '').trim()
+    if (!trimmed) return null
+
+    if (trimmed.startsWith('#')) {
+      const normalized = normalizeHex(trimmed)
+      if (!normalized) return null
+      const r = parseInt(normalized.slice(1, 3), 16)
+      const g = parseInt(normalized.slice(3, 5), 16)
+      const b = parseInt(normalized.slice(5, 7), 16)
+      if ([r, g, b].some((n) => Number.isNaN(n))) return null
+      return { r, g, b }
+    }
+
+    const rgbMatch = trimmed.match(/^rgba?\(([^)]+)\)$/i)
+    if (rgbMatch) {
+      const parts = rgbMatch[1]
+        .split(',')
+        .map((p) => p.trim())
+        .filter(Boolean)
+      if (parts.length < 3) return null
+      const r = Number(parts[0])
+      const g = Number(parts[1])
+      const b = Number(parts[2])
+      if ([r, g, b].some((n) => Number.isNaN(n))) return null
+      return { r, g, b }
+    }
+
+    return null
+  }
+
+  const relativeLuminance = (rgb: { r: number; g: number; b: number }) => {
+    const toLinear = (c: number) => {
+      const s = c / 255
+      return s <= 0.03928 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4)
+    }
+    const r = toLinear(rgb.r)
+    const g = toLinear(rgb.g)
+    const b = toLinear(rgb.b)
+    return 0.2126 * r + 0.7152 * g + 0.0722 * b
+  }
+
+  const isTooLightForSidebar = (color: string) => {
+    const rgb = parseColorToRgb(color)
+    if (!rgb) return false
+    return relativeLuminance(rgb) > 0.85
+  }
+
   const loadThemeSettings = async () => {
     try {
       setLoading(true)
@@ -24,12 +81,20 @@ export const useCompanyTheme = () => {
     }
   }
 
+  useEffect(() => {
+    loadThemeSettings()
+  }, [])
+
   const applyTheme = (settings: ThemeSettings) => {
     if (!settings) return
 
     // Aplicar cor da sidebar
     if (settings.sidebar_color) {
-      document.documentElement.style.setProperty('--sidebar-color', settings.sidebar_color)
+      if (isTooLightForSidebar(settings.sidebar_color)) {
+        console.warn('⚠️ sidebar_color muito claro; ignorando para manter contraste')
+      } else {
+        document.documentElement.style.setProperty('--sidebar-color', settings.sidebar_color)
+      }
     }
 
     // Aplicar modo de tema (light/dark)

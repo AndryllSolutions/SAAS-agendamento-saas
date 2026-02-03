@@ -23,7 +23,8 @@ class WaitList(BaseModel):
     __tablename__ = "waitlist"
     
     company_id = Column(Integer, ForeignKey("companies.id", ondelete="CASCADE"), nullable=False, index=True)
-    client_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    client_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)  # DEPRECATED
+    client_crm_id = Column(Integer, ForeignKey("clients.id", ondelete="SET NULL"), nullable=True, index=True)  # NOVO
     service_id = Column(Integer, ForeignKey("services.id", ondelete="CASCADE"), nullable=False)
     professional_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     
@@ -43,6 +44,9 @@ class WaitList(BaseModel):
     
     # Notes
     notes = Column(String(500), nullable=True)
+    
+    # Relationships (NOVO)
+    client_crm = relationship("Client", foreign_keys=[client_crm_id], back_populates="waitlist_entries")
     
     def __repr__(self):
         return f"<WaitList {self.id} - {self.status}>"

@@ -1,0 +1,335 @@
+﻿{
+    "timestamp":  "2026-01-13 20:30:32",
+    "tests":  [
+                  {
+                      "timestamp":  "20:30:32",
+                      "method":  "POST",
+                      "status_code":  200,
+                      "description":  "Login de usuario",
+                      "success":  true,
+                      "error":  null,
+                      "endpoint":  "/auth/login/json",
+                      "response":  {
+                                       "access_token":  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI1IiwiZXhwIjoxNzY4MzQ4ODMzLCJ0eXBlIjoiYWNjZXNzIiwic2NvcGUiOiJjb21wYW55IiwiY29tcGFueV9pZCI6NCwiY29tcGFueV9yb2xlIjoiQ09NUEFOWV9PV05FUiJ9.2bT4vn8zH8l_1-mM4AU001qRw0ZJ6EtzfuR15OVtBzg",
+                                       "refresh_token":  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI1IiwiZXhwIjoxNzY4OTUxODMzLCJ0eXBlIjoicmVmcmVzaCJ9.Kh2oRidfKwDXn19UcFcyrYxEWj4-SM6fHOFZVc1cbh8",
+                                       "token_type":  "bearer",
+                                       "user":  {
+                                                    "email":  "andrekaidellisola@gmail.com",
+                                                    "full_name":  "Andre Kaique Dell isola ",
+                                                    "phone":  "11968029600",
+                                                    "role":  "OWNER",
+                                                    "id":  5,
+                                                    "company_id":  4,
+                                                    "is_active":  true,
+                                                    "is_verified":  false,
+                                                    "avatar_url":  null,
+                                                    "bio":  null,
+                                                    "date_of_birth":  null,
+                                                    "gender":  null,
+                                                    "specialties":  null,
+                                                    "working_hours":  null,
+                                                    "commission_rate":  0,
+                                                    "created_at":  "2026-01-13T13:11:38.945611",
+                                                    "updated_at":  "2026-01-13T13:11:38.945616",
+                                                    "saas_role":  null
+                                                }
+                                   }
+                  },
+                  {
+                      "timestamp":  "20:30:33",
+                      "method":  "GET",
+                      "status_code":  200,
+                      "description":  "Listar clientes",
+                      "success":  true,
+                      "error":  null,
+                      "endpoint":  "/clients",
+                      "response":  {
+                                       "value":  [
+                                                     {
+                                                         "full_name":  "RONI SILVA GODOI",
+                                                         "nickname":  null,
+                                                         "email":  "imperiocapelli@gmail.com",
+                                                         "phone":  "",
+                                                         "cellphone":  "45999709275",
+                                                         "date_of_birth":  "0998-06-16",
+                                                         "cpf":  "11048728978",
+                                                         "cnpj":  null,
+                                                         "address":  "Avenida Silvio AmÃ©rico Sasdelli, 2299",
+                                                         "address_number":  null,
+                                                         "address_complement":  null,
+                                                         "neighborhood":  null,
+                                                         "city":  "AbatiÃ¡",
+                                                         "state":  "PR",
+                                                         "zip_code":  "85863-720",
+                                                         "marketing_whatsapp":  false,
+                                                         "marketing_email":  false,
+                                                         "notes":  null,
+                                                         "id":  4,
+                                                         "company_id":  4,
+                                                         "credits":  "0.00",
+                                                         "is_active":  true,
+                                                         "created_at":  "2026-01-13T19:38:30.442400",
+                                                         "updated_at":  "2026-01-13T19:38:30.442408"
+                                                     }
+                                                 ],
+                                       "Count":  1
+                                   }
+                  },
+                  {
+                      "timestamp":  "20:30:34",
+                      "method":  "POST",
+                      "status_code":  201,
+                      "description":  "Criar cliente",
+                      "success":  true,
+                      "error":  null,
+                      "endpoint":  "/clients",
+                      "response":  {
+                                       "full_name":  "Cliente Teste CRUD",
+                                       "nickname":  null,
+                                       "email":  "cliente.teste@example.com",
+                                       "phone":  "(11) 98765-4321",
+                                       "cellphone":  "(11) 91234-5678",
+                                       "date_of_birth":  null,
+                                       "cpf":  "123.456.789-00",
+                                       "cnpj":  null,
+                                       "address":  null,
+                                       "address_number":  null,
+                                       "address_complement":  null,
+                                       "neighborhood":  null,
+                                       "city":  null,
+                                       "state":  null,
+                                       "zip_code":  null,
+                                       "marketing_whatsapp":  false,
+                                       "marketing_email":  false,
+                                       "notes":  "Cliente criado via teste automatizado",
+                                       "id":  6,
+                                       "company_id":  4,
+                                       "credits":  "0.00",
+                                       "is_active":  true,
+                                       "created_at":  "2026-01-13T23:30:33.410513",
+                                       "updated_at":  "2026-01-13T23:30:33.410520"
+                                   }
+                  },
+                  {
+                      "timestamp":  "20:30:34",
+                      "method":  "GET",
+                      "status_code":  200,
+                      "description":  "Buscar cliente por ID",
+                      "success":  true,
+                      "error":  null,
+                      "endpoint":  "/clients/6",
+                      "response":  {
+                                       "full_name":  "Cliente Teste CRUD",
+                                       "nickname":  null,
+                                       "email":  "cliente.teste@example.com",
+                                       "phone":  "(11) 98765-4321",
+                                       "cellphone":  "(11) 91234-5678",
+                                       "date_of_birth":  null,
+                                       "cpf":  "123.456.789-00",
+                                       "cnpj":  null,
+                                       "address":  null,
+                                       "address_number":  null,
+                                       "address_complement":  null,
+                                       "neighborhood":  null,
+                                       "city":  null,
+                                       "state":  null,
+                                       "zip_code":  null,
+                                       "marketing_whatsapp":  false,
+                                       "marketing_email":  false,
+                                       "notes":  "Cliente criado via teste automatizado",
+                                       "id":  6,
+                                       "company_id":  4,
+                                       "credits":  "0.00",
+                                       "is_active":  true,
+                                       "created_at":  "2026-01-13T23:30:33.410513",
+                                       "updated_at":  "2026-01-13T23:30:33.410520"
+                                   }
+                  },
+                  {
+                      "timestamp":  "20:30:34",
+                      "method":  "PUT",
+                      "status_code":  200,
+                      "description":  "Atualizar cliente",
+                      "success":  true,
+                      "error":  null,
+                      "endpoint":  "/clients/6",
+                      "response":  {
+                                       "full_name":  "Cliente Teste CRUD (Editado)",
+                                       "nickname":  null,
+                                       "email":  "cliente.teste@example.com",
+                                       "phone":  "(11) 98765-4321",
+                                       "cellphone":  "(11) 91234-5678",
+                                       "date_of_birth":  null,
+                                       "cpf":  "123.456.789-00",
+                                       "cnpj":  null,
+                                       "address":  null,
+                                       "address_number":  null,
+                                       "address_complement":  null,
+                                       "neighborhood":  null,
+                                       "city":  null,
+                                       "state":  null,
+                                       "zip_code":  null,
+                                       "marketing_whatsapp":  false,
+                                       "marketing_email":  false,
+                                       "notes":  "Cliente editado via teste automatizado",
+                                       "id":  6,
+                                       "company_id":  4,
+                                       "credits":  "0.00",
+                                       "is_active":  true,
+                                       "created_at":  "2026-01-13T23:30:33.410513",
+                                       "updated_at":  "2026-01-13T23:30:33.515047"
+                                   }
+                  },
+                  {
+                      "timestamp":  "20:30:34",
+                      "method":  "DELETE",
+                      "status_code":  204,
+                      "description":  "Deletar cliente",
+                      "success":  true,
+                      "error":  null,
+                      "endpoint":  "/clients/6",
+                      "response":  null
+                  },
+                  {
+                      "timestamp":  "20:30:34",
+                      "method":  "GET",
+                      "status_code":  200,
+                      "description":  "Listar categorias de servico",
+                      "success":  true,
+                      "error":  null,
+                      "endpoint":  "/services/categories",
+                      "response":  {
+                                       "value":  [
+
+                                                 ],
+                                       "Count":  0
+                                   }
+                  },
+                  {
+                      "timestamp":  "20:30:34",
+                      "method":  "POST",
+                      "status_code":  201,
+                      "description":  "Criar categoria de servico",
+                      "success":  true,
+                      "error":  null,
+                      "endpoint":  "/services/categories",
+                      "response":  {
+                                       "name":  "Categoria Teste",
+                                       "description":  "Categoria criada via teste automatizado",
+                                       "icon":  null,
+                                       "color":  "#FF5733",
+                                       "id":  2,
+                                       "company_id":  4,
+                                       "is_active":  true,
+                                       "created_at":  "2026-01-13T23:30:33.718103",
+                                       "updated_at":  "2026-01-13T23:30:33.718107"
+                                   }
+                  },
+                  {
+                      "timestamp":  "20:30:34",
+                      "method":  "GET",
+                      "status_code":  200,
+                      "description":  "Buscar categoria por ID",
+                      "success":  true,
+                      "error":  null,
+                      "endpoint":  "/services/categories/2",
+                      "response":  {
+                                       "name":  "Categoria Teste",
+                                       "description":  "Categoria criada via teste automatizado",
+                                       "icon":  null,
+                                       "color":  "#FF5733",
+                                       "id":  2,
+                                       "company_id":  4,
+                                       "is_active":  true,
+                                       "created_at":  "2026-01-13T23:30:33.718103",
+                                       "updated_at":  "2026-01-13T23:30:33.718107"
+                                   }
+                  },
+                  {
+                      "timestamp":  "20:30:34",
+                      "method":  "PUT",
+                      "status_code":  200,
+                      "description":  "Atualizar categoria",
+                      "success":  true,
+                      "error":  null,
+                      "endpoint":  "/services/categories/2",
+                      "response":  {
+                                       "name":  "Categoria Teste (Editada)",
+                                       "description":  "Categoria editada via teste automatizado",
+                                       "icon":  null,
+                                       "color":  "#FF5733",
+                                       "id":  2,
+                                       "company_id":  4,
+                                       "is_active":  true,
+                                       "created_at":  "2026-01-13T23:30:33.718103",
+                                       "updated_at":  "2026-01-13T23:30:33.805002"
+                                   }
+                  },
+                  {
+                      "timestamp":  "20:30:34",
+                      "method":  "DELETE",
+                      "status_code":  204,
+                      "description":  "Deletar categoria",
+                      "success":  true,
+                      "error":  null,
+                      "endpoint":  "/services/categories/2",
+                      "response":  null
+                  },
+                  {
+                      "timestamp":  "20:30:34",
+                      "method":  "GET",
+                      "status_code":  200,
+                      "description":  "Listar fornecedores",
+                      "success":  true,
+                      "error":  null,
+                      "endpoint":  "/suppliers",
+                      "response":  {
+                                       "value":  [
+
+                                                 ],
+                                       "Count":  0
+                                   }
+                  },
+                  {
+                      "timestamp":  "20:30:34",
+                      "method":  "POST",
+                      "status_code":  422,
+                      "description":  "Criar fornecedor",
+                      "success":  false,
+                      "error":  "O servidor remoto retornou um erro: (422) Unprocessable Entity.",
+                      "endpoint":  "/suppliers",
+                      "response":  {
+                                       "error":  "VALIDATION_ERROR",
+                                       "message":  "Erro de validação nos dados enviados"
+                                   }
+                  },
+                  {
+                      "timestamp":  "20:30:34",
+                      "method":  "GET",
+                      "status_code":  200,
+                      "description":  "Listar marcas",
+                      "success":  true,
+                      "error":  null,
+                      "endpoint":  "/products/brands",
+                      "response":  {
+                                       "value":  [
+
+                                                 ],
+                                       "Count":  0
+                                   }
+                  },
+                  {
+                      "timestamp":  "20:30:34",
+                      "method":  "POST",
+                      "status_code":  422,
+                      "description":  "Criar marca",
+                      "success":  false,
+                      "error":  "O servidor remoto retornou um erro: (422) Unprocessable Entity.",
+                      "endpoint":  "/products/brands",
+                      "response":  {
+                                       "error":  "VALIDATION_ERROR",
+                                       "message":  "Erro de validação nos dados enviados"
+                                   }
+                  }
+              ]
+}

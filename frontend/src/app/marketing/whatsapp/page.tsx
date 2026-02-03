@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
-import { MessageCircle, Sparkles, Settings as SettingsIcon } from 'lucide-react'
+import { MessageCircle, Sparkles, Settings as SettingsIcon, FileText, Send } from 'lucide-react'
 import DashboardLayout from '@/components/DashboardLayout'
 
 export default function WhatsAppMarketingPage() {
@@ -11,6 +11,8 @@ export default function WhatsAppMarketingPage() {
   
   const getActiveTab = () => {
     if (pathname?.includes('/custom-campaigns')) return 'custom'
+    if (pathname?.includes('/templates')) return 'templates'
+    if (pathname?.includes('/campaigns')) return 'manual'
     if (pathname?.includes('/settings')) return 'settings'
     return 'campaigns'
   }
@@ -23,6 +25,10 @@ export default function WhatsAppMarketingPage() {
       router.push('/marketing/whatsapp/automated-campaigns')
     } else if (tab === 'custom') {
       router.push('/marketing/whatsapp/custom-campaigns')
+    } else if (tab === 'templates') {
+      router.push('/marketing/whatsapp/templates')
+    } else if (tab === 'manual') {
+      router.push('/marketing/whatsapp/campaigns')
     } else if (tab === 'settings') {
       router.push('/marketing/whatsapp/settings')
     }
@@ -48,7 +54,40 @@ export default function WhatsAppMarketingPage() {
               }`}
             >
               <MessageCircle className="w-4 h-4" />
-              Campanhas
+              Campanhas Automáticas
+            </button>
+            <button
+              onClick={() => handleTabChange('manual')}
+              className={`py-4 px-1 border-b-2 font-medium text-sm flex items-center gap-2 ${
+                activeTab === 'manual'
+                  ? 'border-blue-500 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              <Send className="w-4 h-4" />
+              Campanhas Manuais
+            </button>
+            <button
+              onClick={() => handleTabChange('custom')}
+              className={`py-4 px-1 border-b-2 font-medium text-sm flex items-center gap-2 ${
+                activeTab === 'custom'
+                  ? 'border-blue-500 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              <Sparkles className="w-4 h-4" />
+              Campanhas Personalizadas
+            </button>
+            <button
+              onClick={() => handleTabChange('templates')}
+              className={`py-4 px-1 border-b-2 font-medium text-sm flex items-center gap-2 ${
+                activeTab === 'templates'
+                  ? 'border-blue-500 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              <FileText className="w-4 h-4" />
+              Templates
             </button>
             <button
               onClick={() => handleTabChange('settings')}

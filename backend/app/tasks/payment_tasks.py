@@ -4,7 +4,7 @@ Payment-related Celery tasks
 from datetime import datetime
 from app.tasks.celery_app import celery_app
 from app.core.database import SessionLocal
-from app.models.payment import Subscription
+from app.models.company_subscription import CompanySubscription
 from app.models.user import User
 from app.services.notification_service import NotificationService
 
@@ -20,17 +20,25 @@ def check_expired_subscriptions():
         now = datetime.utcnow()
         
         # Find expired subscriptions
-        expired_subscriptions = db.query(Subscription).filter(
-            Subscription.end_date < now,
-            Subscription.is_active == True
+        expired_subscriptions = db.query(CompanySubscription).filter(
+            CompanySubscription.trial_end_date < now,
+            CompanySubscription.is_active == True
         ).all()
         
         for subscription in expired_subscriptions:
             # Deactivate subscription
             subscription.is_active = False
             
-            # Notify user
-            user = db.query(User).filter(User.id == subscription.user_id).first()
+            # Notify company owner
+            from app.models.company_user import CompanyUser
+            from app.models.user import User
+            
+            company_user = db.query(CompanyUser).filter(
+                CompanyUser.company_id == subscription.company_id,
+                CompanyUser.role == 'owner'
+            ).first()
+            
+            user = db.query(User).filter(User.id == company_user.user_id).first() if company_user else None
             
             if user:
                 message = """

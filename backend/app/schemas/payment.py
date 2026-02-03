@@ -2,7 +2,7 @@
 Payment Schemas
 """
 from typing import Optional, Dict, Any, List
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, validator, ConfigDict
 from datetime import datetime
 from decimal import Decimal
 
@@ -19,7 +19,7 @@ class PaymentBase(BaseModel):
 class PaymentCreate(PaymentBase):
     """Schema for creating a payment"""
     appointment_id: Optional[int] = None
-    user_id: int
+    user_id: Optional[int] = None
     gateway: Optional[str] = None
 
 
@@ -50,8 +50,7 @@ class PaymentResponse(PaymentBase):
     created_at: datetime
     updated_at: datetime
     
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class PaymentWebhook(BaseModel):
@@ -98,8 +97,7 @@ class PlanResponse(PlanBase):
     created_at: datetime
     updated_at: datetime
     
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class SubscriptionCreate(BaseModel):
@@ -123,5 +121,4 @@ class SubscriptionResponse(BaseModel):
     created_at: datetime
     updated_at: datetime
     
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)

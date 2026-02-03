@@ -1,0 +1,29 @@
+# Comandos individuais para executar na VPS
+
+## CONECTAR NA VPS
+ssh root@72.62.138.239
+
+## PASSO 1: Backup e correção do arquivo
+cd /opt/saas/atendo
+cp frontend/src/utils/apiUrl.ts frontend/src/utils/apiUrl.ts.backup
+sed -i 's/https:\/\/atendo\.website/https:\/\/72\.62\.138\.239/g' frontend/src/utils/apiUrl.ts
+
+## Verificar alteração
+grep -n "72.62.138.239" frontend/src/utils/apiUrl.ts
+
+## PASSO 2: Limpar cache
+docker stop agendamento_frontend_prod
+rm -rf frontend/.next
+rm -rf frontend/node_modules/.cache
+docker system prune -f
+
+## PASSO 3: Rebuild
+docker compose build --no-cache frontend
+
+## PASSO 4: Iniciar
+docker compose up -d frontend
+
+## PASSO 5: Verificar status
+sleep 30
+docker compose ps | grep frontend
+curl -k https://72.62.138.239/api/v1/health

@@ -1,0 +1,150 @@
+version: '3.8'
+
+services:
+  evolution-api:
+    image: evolutionapi/evolution-api:latest
+    container_name: evolution-api
+    restart: always
+    ports:
+      - "8080:8080"
+    environment:
+      - SERVER_PORT=8080
+      - SERVER_HOST=0.0.0.0
+      - AUTHENTICATION_TYPE=apikey
+      - AUTHENTICATION_API_KEY=evl_9f3c2a7b8e4d1c6a5f0b2e9a7d4c8f61b9a0e3c7
+      - AUTHENTICATION_EXPOSE_IN_FETCH_INSTANCES=false
+      - DEL_INSTANCE_IN_DELETE=false
+      - QRCODE_LIMIT=5
+      - QRCODE_COLOR=#4CAF50
+      - LANGUAGE=pt
+      - MAX_SESSION=100
+      - WEBHOOK_GLOBAL_URL=http://localhost:8080/webhook
+      - WEBHOOK_GLOBAL_ENABLED=false
+      - DATABASE_ENABLED=true
+      - DATABASE_PROVIDER=postgresql
+      - DATABASE_CONNECTION_STRING=postgresql://postgres:postgres@postgres:5432/evolution
+      - DATABASE_SAVE_ALL_INSTANCE=true
+      - DATABASE_SAVE_MESSAGE=true
+      - DATABASE_SAVE_MESSAGE_UPDATE=true
+      - DATABASE_SAVE_CONTACT=true
+      - DATABASE_SAVE_CHATS=true
+      - DATABASE_SAVE_GROUPS=true
+      - DATABASE_SAVE_LABELS=true
+      - DATABASE_SAVE_HISTORIC=true
+      - REDIS_ENABLED=true
+      - REDIS_URI=redis://redis:6379
+      - CACHE_REDIS_ENABLED=true
+      - CACHE_REDIS_URI=redis://redis:6379
+      - CACHE_REDIS_PREFIX=evolution
+      - CACHE_REDIS_SAVE_INSTANCES=true
+      - CACHE_REDIS_SAVE_MESSAGE=true
+      - CACHE_REDIS_SAVE_CHATS=true
+      - CACHE_REDIS_SAVE_GROUPS=true
+      - CACHE_REDIS_SAVE_CONTACTS=true
+      - CACHE_REDIS_SAVE_LABELS=true
+      - JWT_SECRET_KEY=jwt_Atendo_7c9e2f6b1a4d8e0c5f3b9a2d6e1f4c8b7a5e9
+      - JWT_EXPIRES_IN=2h
+      - CONFIG_SESSION_PHONE_CLIENT=Evolution
+      - CONFIG_SESSION_PHONE_VERSION=2.3000.1014820994
+      - STORE_SESSION=true
+      - STORE_MESSAGE=true
+      - STORE_CONTACT=true
+      - STORE_CHATS=true
+      - STORE_GROUPS=true
+      - STORE_LABELS=true
+      - CLEAN_STORE_CLEANING_INTERVAL=600
+      - CLEAN_STORE_MESSAGES=true
+      - CLEAN_STORE_MESSAGE_LIMIT=1000
+      - CLEAN_STORE_CHATS=true
+      - CLEAN_STORE_CHAT_LIMIT=50
+      - CLEAN_STORE_GROUPS=true
+      - CLEAN_STORE_GROUP_LIMIT=10
+      - CLEAN_STORE_CONTACTS=true
+      - CLEAN_STORE_CONTACT_LIMIT=100
+      - CLEAN_STORE_LABELS=true
+      - CLEAN_STORE_LABEL_LIMIT=10
+      - WEBHOOK_EVENTS_APPLICATION_STARTUP=false
+      - WEBHOOK_EVENTS_INSTANCE_CREATE=true
+      - WEBHOOK_EVENTS_INSTANCE_DELETE=true
+      - WEBHOOK_EVENTS_QRCODE_UPDATED=true
+      - WEBHOOK_EVENTS_MESSAGES_SET=true
+      - WEBHOOK_EVENTS_MESSAGES_UPSERT=true
+      - WEBHOOK_EVENTS_MESSAGES_UPDATE=true
+      - WEBHOOK_EVENTS_CONTACT_CREATE=true
+      - WEBHOOK_EVENTS_CONTACT_UPDATE=true
+      - WEBHOOK_EVENTS_PRESENCE_UPDATE=true
+      - WEBHOOK_EVENTS_CHATS_CREATE=true
+      - WEBHOOK_EVENTS_CHATS_UPDATE=true
+      - WEBHOOK_EVENTS_GROUPS_CREATE=true
+      - WEBHOOK_EVENTS_GROUPS_UPDATE=true
+      - WEBHOOK_EVENTS_LABELS_CREATE=true
+      - WEBHOOK_EVENTS_LABELS_UPDATE=true
+      - WEBHOOK_EVENTS_LABELS_ASSOCIATE=true
+      - WEBHOOK_EVENTS_LABELS_REMOVE=true
+      - WEBHOOK_EVENTS_CHATS_DELETE=true
+      - WEBHOOK_EVENTS_GROUPS_DELETE=true
+      - WEBHOOK_EVENTS_MESSAGES_DELETE=true
+      - WEBHOOK_EVENTS_CONNECTION_UPDATE=true
+      - WEBHOOK_EVENTS_ERROR=false
+      - WEBHOOK_EVENTS_ERRORS=false
+      - WEBHOOK_EVENTS_OPENWA=false
+      - WEBHOOK_EVENTS_LEGACY_ERRORS=false
+      - WEBHOOK_EVENTS_ALL_MESSAGES=false
+      - WEBHOOK_EVENTS_ALL_ACK=false
+      - WEBHOOK_EVENTS_ALL_READ=false
+      - WEBHOOK_EVENTS_ALL_READ_SELF=false
+      - WEBHOOK_EVENTS_ALL_RECEIPT=false
+      - WEBHOOK_EVENTS_ALL_RECEIPT_SELF=false
+      - WEBHOOK_EVENTS_ALL_SEND_MESSAGE=false
+      - WEBHOOK_EVENTS_ALL_CONTACTS=false
+      - WEBHOOK_EVENTS_ALL_CHATS=false
+      - WEBHOOK_EVENTS_ALL_GROUPS=false
+      - WEBHOOK_EVENTS_ALL_LABELS=false
+      - WEBHOOK_EVENTS_ALL_PRESENCE=false
+      - WEBHOOK_EVENTS_ALL_CONNECTION=false
+      - WEBHOOK_EVENTS_ALL_ERRORS=false
+      - WEBHOOK_EVENTS_ALL_LEGACY_ERRORS=false
+      - WEBHOOK_EVENTS_ALL_OPENWA=false
+      - WEBHOOK_GLOBAL_WEBHOOK_URL=
+      - WEBHOOK_GLOBAL_ENABLED=false
+      - WEBHOOK_GLOBAL_BASE64=false
+      - WEBHOOK_GLOBAL_ALL_EVENTS=false
+      - WEBHOOK_GLOBAL_SUBSCRIBE=false
+      - WEBHOOK_GLOBAL_BY_EVENTS=false
+      - WEBHOOK_GLOBAL_INSTANCES=
+      - WEBHOOK_GLOBAL_JWT=
+      - WEBHOOK_GLOBAL_AUTHORIZATION=
+      - LOG_LEVEL=INFO
+      - LOG_COLOR=true
+    volumes:
+      - ./instances:/evolution/instances
+    depends_on:
+      - postgres
+      - redis
+
+  postgres:
+    image: postgres:15-alpine
+    container_name: evolution-postgres
+    restart: always
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=evolution
+    volumes:
+      - evolution_postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+  redis:
+    image: redis:7-alpine
+    container_name: evolution-redis
+    restart: always
+    command: redis-server --appendonly yes
+    volumes:
+      - evolution_redis_data:/data
+    ports:
+      - "6379:6379"
+
+volumes:
+  evolution_postgres_data:
+  evolution_redis_data:

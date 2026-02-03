@@ -1,11 +1,12 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Plus, Edit, Trash2, Star, Clock, DollarSign, User as UserIcon, Mail, Phone, Award, Calendar, BarChart3, MapPin, Search } from 'lucide-react'
+import { Plus, Edit, Trash2, Star, Clock, DollarSign, User as UserIcon, Mail, Phone, Award, Calendar, BarChart3, MapPin, Search, GripVertical } from 'lucide-react'
 import { toast } from 'sonner'
 import DashboardLayout from '@/components/DashboardLayout'
 import { usePermissions } from '@/hooks/usePermissions'
 import ProfessionalForm from '@/components/ProfessionalForm'
+import { ProfessionalsTable } from '@/components/professionals/ProfessionalsTable'
 import { toAbsoluteImageUrl } from '@/utils/apiUrl'
 
 export default function ProfessionalsPage() {
@@ -22,6 +23,9 @@ export default function ProfessionalsPage() {
   })
   const [searchTerm, setSearchTerm] = useState('')
   const [isActiveFilter, setIsActiveFilter] = useState<boolean | null>(null)
+  const [draggedItem, setDraggedItem] = useState<any>(null)
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null)
+  const [isReordering, setIsReordering] = useState(false)
 
   const getFullImageUrl = (url: string | undefined | null): string | null => toAbsoluteImageUrl(url)
 
@@ -32,14 +36,11 @@ export default function ProfessionalsPage() {
   const loadProfessionals = async () => {
     try {
       setLoading(true)
-      const { professionalService } = await import('@/services/api')
-      
-      // Calculate skip for pagination
-      const skip = (pagination.page - 1) * pagination.limit
+      const { professionalService } = await import('@/services/professionalService')
       
       // Build params object
       const params: any = {
-        skip,
+        skip: (pagination.page - 1) * pagination.limit,
         limit: pagination.limit
       }
       
@@ -92,6 +93,72 @@ export default function ProfessionalsPage() {
 
   const handleSuccess = () => {
     loadProfessionals()
+  }
+
+  const handleReorder = async (fromIndex: number, toIndex: number) => {
+    if (fromIndex === toIndex) return
+
+    setIsReordering(true)
+    
+    try {
+      const { professionalService } = await import('@/services/professionalService')
+      
+      // Create reordered array
+      const reorderedProfessionals = [...professionals]
+      const [movedItem] = reorderedProfessionals.splice(fromIndex, 1)
+      reorderedProfessionals.splice(toIndex, 0, movedItem)
+      
+      // Update sort_order for all affected items
+      const reorderItems = reorderedProfessionals.map((prof: any, index: number) => ({
+        id: prof.id,
+        sort_order: index + 1
+      }))
+      
+      // Call API
+      await professionalService.reorder({ items: reorderItems })
+      
+      // Update local state
+      setProfessionals(reorderedProfessionals)
+      
+      toast.success('Profissionais reordenados com sucesso!')
+    } catch (error) {
+      toast.error('Erro ao reordenar profissionais')
+      // Revert to original order
+      loadProfessionals()
+    } finally {
+      setIsReordering(false)
+      setDraggedItem(null)
+      setDragOverIndex(null)
+    }
+  }
+
+  // Drag and drop handlers
+  const handleDragStart = (e: React.DragEvent, item: any, index: number) => {
+    setDraggedItem(item)
+    e.dataTransfer.effectAllowed = 'move'
+    e.dataTransfer.setData('text/plain', index.toString())
+  }
+
+  const handleDragOver = (e: React.DragEvent, index: number) => {
+    e.preventDefault()
+    e.dataTransfer.dropEffect = 'move'
+    setDragOverIndex(index)
+  }
+
+  const handleDragLeave = () => {
+    setDragOverIndex(null)
+  }
+
+  const handleDrop = (e: React.DragEvent, dropIndex: number) => {
+    e.preventDefault()
+    
+    const draggedIndex = parseInt(e.dataTransfer.getData('text/plain'))
+    
+    if (draggedIndex !== dropIndex) {
+      handleReorder(draggedIndex, dropIndex)
+    }
+    
+    setDragOverIndex(null)
   }
 
   if (!permissions.canManageUsers()) {

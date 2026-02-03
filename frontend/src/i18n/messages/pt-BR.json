@@ -1,0 +1,26 @@
+{
+  "login": {
+    "brandName": "Agendamento SaaS",
+    "heroTitle": "Gerencie seus agendamentos com facilidade",
+    "heroSubtitle": "Plataforma completa para gestao de saloes, clinicas e estabelecimentos de beleza.",
+    "features": {
+      "item1": "Agenda inteligente e intuitiva",
+      "item2": "Gestao completa de clientes e servicos",
+      "item3": "Relatorios financeiros detalhados",
+      "item4": "Notificacoes automaticas via SMS e Email"
+    },
+    "quote": "A melhor ferramenta para transformar sua gestao de agendamentos",
+    "title": "Bem-vindo de volta!",
+    "subtitle": "Entre com suas credenciais para acessar o sistema",
+    "emailLabel": "Email",
+    "emailPlaceholder": "seu@email.com",
+    "passwordLabel": "Senha",
+    "passwordPlaceholder": "••••••••",
+    "rememberMe": "Lembrar-me",
+    "forgotPassword": "Esqueceu a senha?",
+    "submit": "Entrar",
+    "submitting": "Entrando...",
+    "noAccount": "Nao tem uma conta?",
+    "createAccount": "Criar conta gratis"
+  }
+}

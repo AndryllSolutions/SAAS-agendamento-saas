@@ -1,7 +1,7 @@
 """
 Resources Endpoints
 """
-from typing import List
+from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
@@ -9,9 +9,11 @@ from app.core.database import get_db
 from app.core.security import get_current_active_user, require_manager
 from app.models.resource import Resource
 from app.models.user import User
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
-router = APIRouter()
+router = APIRouter(
+    redirect_slashes=False  # 🔥 DESATIVA REDIRECT AUTOMÁTICO - CORS FIX
+)
 
 
 class ResourceBase(BaseModel):
@@ -40,13 +42,13 @@ class ResourceResponse(ResourceBase):
     company_id: int
     is_active: bool
     is_available: bool
-    image_url: str = None
+    image_url: Optional[str] = None  # Fixed: Made Optional
     
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
-@router.post("/", response_model=ResourceResponse, status_code=status.HTTP_201_CREATED)
+@router.post("", response_model=ResourceResponse, status_code=status.HTTP_201_CREATED)
+@router.post("/", response_model=ResourceResponse, status_code=status.HTTP_201_CREATED, include_in_schema=False)
 async def create_resource(
     resource_data: ResourceCreate,
     current_user: User = Depends(require_manager),
@@ -67,7 +69,8 @@ async def create_resource(
     return resource
 
 
-@router.get("/", response_model=List[ResourceResponse])
+@router.get("", response_model=List[ResourceResponse])
+@router.get("/", response_model=List[ResourceResponse], include_in_schema=False)
 async def list_resources(
     resource_type: str = None,
     is_available: bool = None,
@@ -89,7 +92,16 @@ async def list_resources(
         query = query.filter(Resource.is_available == is_available)
     
     resources = query.all()
-    return resources
+    # Ensure safe conversion even with NULL fields in database
+    result = []
+    for r in resources:
+        try:
+            result.append(ResourceResponse.model_validate(r))
+        except Exception as e:
+            # Log error but continue (skip invalid resources)
+            print(f"Warning: Skipping resource {r.id} due to validation error: {e}")
+            continue
+    return result
 
 
 @router.get("/{resource_id}", response_model=ResourceResponse)
@@ -112,7 +124,7 @@ async def get_resource(
             detail="Recurso não encontrado"
         )
     
-    return resource
+    return ResourceResponse.model_validate(resource)
 
 
 @router.put("/{resource_id}", response_model=ResourceResponse)

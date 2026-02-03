@@ -42,13 +42,18 @@ class Service(BaseModel):
     # Pricing
     price = Column(Numeric(10, 2), nullable=False)
     currency = Column(String(3), default="BRL")
+    extra_cost = Column(Numeric(10, 2), nullable=True)
     
     # Duration
     duration_minutes = Column(Integer, nullable=False, default=60)
+    lead_time_minutes = Column(Integer, nullable=True, default=0)
     
     # Availability
     is_active = Column(Boolean, default=True)
+    is_favorite = Column(Boolean, default=False)
     requires_professional = Column(Boolean, default=True)
+    available_online = Column(Boolean, default=True)  # Disponível para agendamento online
+    online_booking_enabled = Column(Boolean, default=True)  # Habilitado para agendamento online
     
     # Visual
     image_url = Column(String(500), nullable=True)
@@ -61,6 +66,13 @@ class Service(BaseModel):
     company = relationship("Company", back_populates="services")
     category = relationship("ServiceCategory", back_populates="services")
     appointments = relationship("Appointment", back_populates="service")
+    service_professionals = relationship("ServiceProfessional", back_populates="service", cascade="all, delete-orphan")
+    
+    # Helper properties
+    @property
+    def assigned_professionals(self):
+        """Get active professionals assigned to this service"""
+        return [sp.professional for sp in self.service_professionals if sp.is_active]
     
     def __repr__(self):
         return f"<Service {self.name}>"

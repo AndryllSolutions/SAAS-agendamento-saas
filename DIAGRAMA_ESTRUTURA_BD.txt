@@ -1,0 +1,349 @@
+╔════════════════════════════════════════════════════════════════════════════════════════╗
+║                    DIAGRAMA COMPLETO - BANCO DE DADOS SAAS AGENDAMENTO                 ║
+║                              47 Tabelas | 120+ Relacionamentos                          ║
+╚════════════════════════════════════════════════════════════════════════════════════════╝
+
+┌────────────────────────────────────────────────────────────────────────────────────────┐
+│                                   LAYER 1: SAAS CORE                                    │
+└────────────────────────────────────────────────────────────────────────────────────────┘
+
+                            ╔═══════════════════════════╗
+                            ║       COMPANIES           ║  ← RAIZ DO TENANT
+                            ║  • 47 OneToMany           ║
+                            ║  • 4 OneToOne             ║
+                            ║  • subscription_plan      ║
+                            ║  • is_active              ║
+                            ╚═══════════════════════════╝
+                                        │
+                ┌───────────────────────┼───────────────────────┐
+                │                       │                       │
+        ┌───────▼──────┐       ┌───────▼──────┐       ┌───────▼──────┐
+        │    USERS     │       │ COMPANY_SUB  │       │ COMPANY_     │
+        │ (nullable)   │       │ SCRIPTIONS   │       │ SETTINGS 1:1 │
+        │ • saas_role  │       │ • plan_type  │       │ • encrypted  │
+        └──────┬───────┘       └──────────────┘       └──────────────┘
+               │
+               │
+        ┌──────▼──────────┐
+        │  COMPANY_USERS  │  ← MULTI-COMPANY BRIDGE
+        │  • role         │
+        │  • is_active    │
+        │  UNIQUE(u+c)    │
+        └─────────────────┘
+
+┌────────────────────────────────────────────────────────────────────────────────────────┐
+│                              LAYER 2: BUSINESS ENTITIES                                 │
+└────────────────────────────────────────────────────────────────────────────────────────┘
+
+    ┌─────────────────┐         ┌─────────────────┐         ┌─────────────────┐
+    │    CLIENTS      │         │    SERVICES     │         │    PRODUCTS     │
+    │  • credits      │         │  • price        │         │  • stock        │
+    │  • marketing    │         │  • duration     │         │  • barcode      │
+    │  • cashback_bal │         │  • commission   │         │  • images       │
+    └────────┬────────┘         └────────┬────────┘         └────────┬────────┘
+             │                           │                           │
+             └───────────────┬───────────┴───────────────┬───────────┘
+                             │                           │
+                    ┌────────▼───────────┐      ┌────────▼────────┐
+                    │   APPOINTMENTS     │      │    COMMANDS     │
+                    │  • QR check-in     │      │  • items        │
+                    │  • reminders       │      │  • NF-e/NFS-e   │
+                    │  • status          │      │  • commissions  │
+                    └────────┬───────────┘      └────────┬────────┘
+                             │                           │
+                             └───────────┬───────────────┘
+                                         │
+                                ┌────────▼────────┐
+                                │    PAYMENTS     │
+                                │  • PIX          │
+                                │  • Boleto       │
+                                │  • Gateway      │
+                                └─────────────────┘
+
+┌────────────────────────────────────────────────────────────────────────────────────────┐
+│                               LAYER 3: FINANCIAL SYSTEM                                 │
+└────────────────────────────────────────────────────────────────────────────────────────┘
+
+    ┌──────────────────────┐         ┌──────────────────────┐
+    │ FINANCIAL_ACCOUNTS   │         │ FINANCIAL_CATEGORIES │
+    │  • balance           │         │  • hierarchical      │
+    │  • type              │         │  • income/expense    │
+    └──────────┬───────────┘         └──────────┬───────────┘
+               │                                 │
+               └────────────┬────────────────────┘
+                            │
+              ┌─────────────▼──────────────┐
+              │ FINANCIAL_TRANSACTIONS     │  ← CORE FINANCEIRO
+              │  • origin (command/etc)    │
+              │  • value / net_value       │
+              │  • fees                    │
+              │  • is_paid                 │
+              └────────────────────────────┘
+
+    ┌──────────────────┐         ┌──────────────────┐         ┌──────────────────┐
+    │   COMMISSIONS    │         │  CASH_REGISTERS  │         │  PAYMENT_FORMS   │
+    │  • percentage    │         │  • opening       │         │  • gateway       │
+    │  • status        │         │  • closing       │         │  • integration   │
+    └──────────────────┘         └──────────────────┘         └──────────────────┘
+
+┌────────────────────────────────────────────────────────────────────────────────────────┐
+│                             LAYER 4: PACKAGES & SUBSCRIPTIONS                          │
+└────────────────────────────────────────────────────────────────────────────────────────┘
+
+    ┌─────────────────────┐                       ┌──────────────────────────┐
+    │ PREDEFINED_PACKAGES │                       │ SUBSCRIPTION_SALE_MODELS │
+    │  • services_inc     │                       │  • monthly_value         │
+    │  • validity_days    │                       │  • credits_included      │
+    └──────────┬──────────┘                       └──────────┬───────────────┘
+               │                                              │
+         ┌─────▼─────────┐                          ┌────────▼───────────┐
+         │   PACKAGES    │                          │ SUBSCRIPTION_SALES │
+         │  • sessions   │                          │  • usage tracking  │
+         │  • expiry     │                          │  • billing dates   │
+         └───────────────┘                          └────────────────────┘
+
+┌────────────────────────────────────────────────────────────────────────────────────────┐
+│                            LAYER 5: MARKETING & LOYALTY                                 │
+└────────────────────────────────────────────────────────────────────────────────────────┘
+
+    ┌─────────────────┐         ┌─────────────────┐         ┌─────────────────┐
+    │ CASHBACK_RULES  │         │   PROMOTIONS    │         │     GOALS       │
+    │  • type         │         │  • discount     │         │  • target       │
+    │  • value        │         │  • validity     │         │  • progress     │
+    │  • filters      │         │  • max_uses     │         │  • type         │
+    └────────┬────────┘         └─────────────────┘         └─────────────────┘
+             │
+       ┌─────▼──────────┐
+       │ CASHBACK_BAL   │  ← 1:1 com CLIENT
+       │  • balance     │
+       └────────┬───────┘
+                │
+       ┌────────▼────────┐
+       │ CASHBACK_TRANS  │
+       │  • earned/used  │
+       └─────────────────┘
+
+┌────────────────────────────────────────────────────────────────────────────────────────┐
+│                          LAYER 6: NOTIFICATION SYSTEM (Modern)                          │
+└────────────────────────────────────────────────────────────────────────────────────────┘
+
+    ┌─────────────────────┐         ┌─────────────────────┐
+    │ NOTIFICATION_       │         │ NOTIFICATION_       │
+    │ TEMPLATES           │         │ TRIGGERS            │
+    │  • placeholders     │◄────────┤  • event_type       │
+    │  • multi_channel    │         │  • conditions       │
+    │  • title/body       │         │  • filters          │
+    └──────────┬──────────┘         └─────────────────────┘
+               │
+               │
+       ┌───────▼───────────┐
+       │ NOTIFICATION_     │  ← FILA DE ENVIO
+       │ QUEUE             │
+       │  • scheduling     │
+       │  • retry          │
+       │  • status         │
+       └───────┬───────────┘
+               │
+               │
+    ┌──────────▼──────────────┐         ┌──────────────────────┐
+    │ USER_PUSH_SUBSCRIPTIONS │         │ PUSH_NOTIFICATION_   │
+    │  • VAPID                │         │ LOGS                 │
+    │  • endpoint (UNIQUE)    │         │  • status            │
+    │  • p256dh / auth        │         │  • error_tracking    │
+    └─────────────────────────┘         └──────────────────────┘
+
+┌────────────────────────────────────────────────────────────────────────────────────────┐
+│                            LAYER 7: WHATSAPP MARKETING                                  │
+└────────────────────────────────────────────────────────────────────────────────────────┘
+
+    ┌─────────────────────┐
+    │ WHATSAPP_PROVIDER   │  ← 1:1 com COMPANY
+    │  • api_url          │
+    │  • is_connected     │
+    └──────────┬──────────┘
+               │
+      ┌────────▼─────────┐
+      │ WHATSAPP_        │
+      │ TEMPLATES        │
+      │  • variables     │
+      └────────┬─────────┘
+               │
+      ┌────────▼─────────┐
+      │ WHATSAPP_        │
+      │ CAMPAIGNS        │
+      │  • auto_send     │
+      │  • statistics    │
+      └────────┬─────────┘
+               │
+      ┌────────▼─────────┐
+      │ WHATSAPP_        │
+      │ CAMPAIGN_LOGS    │
+      │  • delivered_at  │
+      │  • read_at       │
+      └──────────────────┘
+
+┌────────────────────────────────────────────────────────────────────────────────────────┐
+│                         LAYER 8: CONFIGURATION TABLES (1:1)                             │
+└────────────────────────────────────────────────────────────────────────────────────────┘
+
+    ┌─────────────────────┐         ┌─────────────────────┐
+    │ COMPANY_SETTINGS    │         │ COMMISSION_CONFIGS  │
+    │  • encrypted        │         │  • fees_resp        │
+    │  • vapid_config     │         │  • discounts_resp   │
+    └─────────────────────┘         └─────────────────────┘
+
+    ┌─────────────────────┐         ┌─────────────────────┐
+    │ FISCAL_CONFIGS      │         │ WHATSAPP_PROVIDER   │
+    │  • nfse/nfe/nfce    │         │  • evolution/twilio │
+    │  • auto_generate    │         │  • instance_id      │
+    └─────────────────────┘         └─────────────────────┘
+
+┌────────────────────────────────────────────────────────────────────────────────────────┐
+│                              LAYER 9: OTHER MODULES                                     │
+└────────────────────────────────────────────────────────────────────────────────────────┘
+
+    ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐    ┌─────────────┐
+    │ ANAMNESIS_MODEL │    │   ANAMNESES     │    │    REVIEWS      │    │  RESOURCES  │
+    │  • fields       │───▶│  • responses    │    │  • rating 1-5   │    │  • type     │
+    │  • related_svc  │    │  • signature    │    │  • origin       │    │  • capacity │
+    └─────────────────┘    └─────────────────┘    └─────────────────┘    └─────────────┘
+
+    ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐    ┌─────────────┐
+    │   SUPPLIERS     │───▶│   PURCHASES     │───▶│ PURCHASE_ITEMS  │    │  WAITLIST   │
+    │  • cnpj         │    │  • status       │    │  • quantity     │    │  • priority │
+    └─────────────────┘    └─────────────────┘    └─────────────────┘    └─────────────┘
+
+    ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+    │ DOCUMENT_       │───▶│ GENERATED_      │    │    INVOICES     │
+    │ TEMPLATES       │    │ DOCUMENTS       │    │  • NF-e/NFS-e   │
+    │  • variables    │    │  • file_url     │    │  • xml/pdf      │
+    └─────────────────┘    └─────────────────┘    └─────────────────┘
+
+┌────────────────────────────────────────────────────────────────────────────────────────┐
+│                       ⚠️  LAYER 10: MISSING (SAAS ADMIN) ⚠️                            │
+└────────────────────────────────────────────────────────────────────────────────────────┘
+
+    ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐    ┌─────────────┐
+    │  ❌ PLANS       │───▶│ ❌ PLAN_        │    │ ❌ BILLING_     │    │ ❌ USAGE_   │
+    │                 │    │ FEATURE_LIMITS  │    │ INVOICES        │    │ TRACKING    │
+    │ 🔴 PRIORIDADE   │    │ 🔴 PRIORIDADE   │    │ 🔴 PRIORIDADE   │    │ 🔴 PRIORITY │
+    │    CRÍTICA      │    │    CRÍTICA      │    │    CRÍTICA      │    │  CRÍTICA    │
+    └─────────────────┘    └─────────────────┘    └─────────────────┘    └─────────────┘
+
+    ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐    ┌─────────────┐
+    │ ❌ SUBSCRIPTION │    │ ❌ AUDIT_LOGS   │    │ ❌ FEATURE_     │    │ ❌ SUPPORT_ │
+    │ _HISTORY        │    │                 │    │ FLAGS           │    │ TICKETS     │
+    │ 🟡 MÉDIA        │    │ 🟡 MÉDIA        │    │ 🟡 MÉDIA        │    │ 🟢 BAIXA    │
+    └─────────────────┘    └─────────────────┘    └─────────────────┘    └─────────────┘
+
+═══════════════════════════════════════════════════════════════════════════════════════════
+
+                              ESTATÍSTICAS DO BANCO DE DADOS
+
+═══════════════════════════════════════════════════════════════════════════════════════════
+
+┌──────────────────────────────┬──────────────────────────────────────────────────────────┐
+│ MÉTRICA                      │ VALOR                                                    │
+├──────────────────────────────┼──────────────────────────────────────────────────────────┤
+│ Total de Tabelas             │ 47 tabelas                                               │
+│ Tabelas Multi-Tenant         │ 41 tabelas (87%)                                         │
+│ Tabelas Globais              │ 6 tabelas (13%)                                          │
+│ Tabelas 1:1 com Company      │ 4 tabelas                                                │
+│ Total de Foreign Keys        │ ~120 FKs                                                 │
+│ Total de Índices             │ ~140 índices                                             │
+│ Primary Keys                 │ 47 PKs                                                   │
+│ Unique Constraints           │ 15 constraints                                           │
+│ Campos com Default           │ ~200 campos                                              │
+│ Campos NOT NULL              │ ~350 campos                                              │
+│ Campos JSON                  │ 40+ campos                                               │
+│ Enums                        │ 25+ enums                                                │
+└──────────────────────────────┴──────────────────────────────────────────────────────────┘
+
+═══════════════════════════════════════════════════════════════════════════════════════════
+
+                                  MULTI-TENANT SUMMARY
+
+═══════════════════════════════════════════════════════════════════════════════════════════
+
+✅ TABELAS COM company_id (41):
+   ├─ users (nullable para SaaS Admins)
+   ├─ company_users, company_subscriptions
+   ├─ clients, services, products, appointments, commands
+   ├─ financial_transactions, financial_accounts, commissions
+   ├─ packages, subscription_sales, anamneses
+   ├─ cashback_rules, cashback_balances, promotions, goals
+   ├─ notification_templates, notification_triggers, notification_queue
+   ├─ whatsapp_templates, whatsapp_campaigns
+   ├─ invoices, purchases, reviews, resources
+   └─ [+ 20 outras tabelas]
+
+❌ TABELAS SEM company_id (6):
+   ├─ companies (raiz do tenant)
+   ├─ command_items (herda via command_id)
+   ├─ purchase_items (herda via purchase_id)
+   ├─ notifications (via user_id - legado)
+   ├─ plans (global - MISSING)
+   └─ plan_feature_limits (global - MISSING)
+
+═══════════════════════════════════════════════════════════════════════════════════════════
+
+                                RBAC TWO-LAYER ARCHITECTURE
+
+═══════════════════════════════════════════════════════════════════════════════════════════
+
+LAYER 1: SAAS GLOBAL
+├─ SAAS_OWNER      → Acesso total ao sistema
+└─ SAAS_STAFF      → Acesso administrativo global
+
+LAYER 2: COMPANY ROLES (via CompanyUser)
+├─ COMPANY_OWNER         → Dono da empresa
+├─ COMPANY_MANAGER       → Gerente (acesso total)
+├─ COMPANY_OPERATOR      → Operador (acesso operacional)
+├─ COMPANY_PROFESSIONAL  → Profissional (agenda + atendimentos)
+├─ COMPANY_RECEPTIONIST  → Recepcionista (agendamentos)
+├─ COMPANY_FINANCE       → Financeiro (transações)
+├─ COMPANY_CLIENT        → Cliente (visualização)
+└─ COMPANY_READ_ONLY     → Somente leitura
+
+═══════════════════════════════════════════════════════════════════════════════════════════
+
+                                    STATUS GERAL
+
+═══════════════════════════════════════════════════════════════════════════════════════════
+
+┌────────────────────────┬─────────┬──────────────────────────────────────────────────────┐
+│ MÓDULO                 │ STATUS  │ PROGRESSO                                            │
+├────────────────────────┼─────────┼──────────────────────────────────────────────────────┤
+│ Infraestrutura Base    │ ✅      │ ████████████████████████████████████████ 100%        │
+│ Multi-Tenant           │ ✅      │ ████████████████████████████████████████ 100%        │
+│ RBAC Two-Layer         │ ✅      │ ████████████████████████████████████████ 100%        │
+│ Usuários               │ ✅      │ ████████████████████████████████████████ 100%        │
+│ Notificações           │ ✅      │ ████████████████████████████████████████ 100%        │
+│ Sistema Financeiro     │ 🟡      │ ████████████████████████████░░░░░░░░░░░░  70%        │
+│ 🔴 SaaS Admin Module   │ 🔴      │ ████████████████░░░░░░░░░░░░░░░░░░░░░░░░  40%        │
+│ Frontend Admin         │ ⚠️       │ ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░   0%        │
+│ Testes                 │ 🟡      │ ████████████████░░░░░░░░░░░░░░░░░░░░░░░░  40%        │
+│ Deployment             │ 🟡      │ ████████████████████░░░░░░░░░░░░░░░░░░░░  50%        │
+└────────────────────────┴─────────┴──────────────────────────────────────────────────────┘
+
+LEGENDA: ✅ Completo | 🟡 Parcial | 🔴 Crítico | ⚠️ Não iniciado
+
+═══════════════════════════════════════════════════════════════════════════════════════════
+
+                           🎯 AÇÃO NECESSÁRIA IMEDIATA 🎯
+
+═══════════════════════════════════════════════════════════════════════════════════════════
+
+    1. Implementar tabela PLANS (🔴 CRÍTICO)
+    2. Implementar tabela PLAN_FEATURE_LIMITS (🔴 CRÍTICO)
+    3. Implementar tabela BILLING_INVOICES (🔴 CRÍTICO)
+    4. Implementar tabela USAGE_TRACKING (🔴 CRÍTICO)
+
+    Ver: MISSING_TABLES_SAAS_ADMIN.sql
+    Ver: CHECKLIST_SAAS_ADMIN.md
+
+═══════════════════════════════════════════════════════════════════════════════════════════
+
+Gerado em: 2025-12-11
+Análise completa de: 47 tabelas | 120+ relacionamentos | 202 arquivos Python
+

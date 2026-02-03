@@ -28,7 +28,7 @@ class Appointment(BaseModel):
     company_id = Column(Integer, ForeignKey("companies.id", ondelete="CASCADE"), nullable=False, index=True)
     
     # Relations
-    client_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    client_crm_id = Column(Integer, ForeignKey("clients.id", ondelete="SET NULL"), nullable=True, index=True)  # Cliente do CRM
     professional_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)
     service_id = Column(Integer, ForeignKey("services.id", ondelete="SET NULL"), nullable=True)
     resource_id = Column(Integer, ForeignKey("resources.id", ondelete="SET NULL"), nullable=True)
@@ -63,12 +63,13 @@ class Appointment(BaseModel):
     
     # Relationships
     company = relationship("Company", back_populates="appointments")
-    client = relationship("User", foreign_keys=[client_id], back_populates="appointments_as_client")
+    client_crm = relationship("Client", foreign_keys=[client_crm_id], back_populates="appointments")  # Cliente do CRM
     professional = relationship("User", foreign_keys=[professional_id], back_populates="appointments_as_professional")
     service = relationship("Service", back_populates="appointments")
     resource = relationship("Resource", back_populates="appointments")
     payment = relationship("Payment", back_populates="appointment", uselist=False)
     review = relationship("Review", back_populates="appointment", uselist=False)
+    command = relationship("Command", back_populates="appointment")
     
     def __repr__(self):
         return f"<Appointment {self.id} - {self.status}>"

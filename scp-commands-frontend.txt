@@ -1,0 +1,37 @@
+# Comandos SCP para Frontend - Execute individualmente no PowerShell
+# VPS_IP="72.62.138.239"
+# VPS_USER="root"
+# VPS_PATH="/opt/saas/atendo"
+
+# 1. DrawerStackManager.tsx
+scp "c:/PROJETOS/agendamento_SAAS (1)/agendamento_SAAS/frontend/src/components/professionals/DrawerStackManager.tsx" root@72.62.138.239:/opt/saas/atendo/frontend/src/components/professionals/
+
+# 2. SubDrawer.tsx
+scp "c:/PROJETOS/agendamento_SAAS (1)/agendamento_SAAS/frontend/src/components/professionals/SubDrawer.tsx" root@72.62.138.239:/opt/saas/atendo/frontend/src/components/professionals/
+
+# 3. NovaPersonalizacaoDrawer.tsx
+scp "c:/PROJETOS/agendamento_SAAS (1)/agendamento_SAAS/frontend/src/components/professionals/NovaPersonalizacaoDrawer.tsx" root@72.62.138.239:/opt/saas/atendo/frontend/src/components/professionals/
+
+# 4. NovoValeDrawer.tsx
+scp "c:/PROJETOS/agendamento_SAAS (1)/agendamento_SAAS/frontend/src/components/professionals/NovoValeDrawer.tsx" root@72.62.138.239:/opt/saas/atendo/frontend/src/components/professionals/
+
+# 5. ProfessionalsTable.tsx
+scp "c:/PROJETOS/agendamento_SAAS (1)/agendamento_SAAS/frontend/src/components/professionals/ProfessionalsTable.tsx" root@72.62.138.239:/opt/saas/atendo/frontend/src/components/professionals/
+
+# 6. EmployeeDrawer.tsx (atualizado)
+scp "c:/PROJETOS/agendamento_SAAS (1)/agendamento_SAAS/frontend/src/components/professionals/EmployeeDrawer.tsx" root@72.62.138.239:/opt/saas/atendo/frontend/src/components/professionals/
+
+# 7. ExpedienteSection.tsx (atualizado)
+scp "c:/PROJETOS/agendamento_SAAS (1)/agendamento_SAAS/frontend/src/components/professionals/sections/ExpedienteSection.tsx" root@72.62.138.239:/opt/saas/atendo/frontend/src/components/professionals/sections/
+
+# 8. ValesSection.tsx (atualizado)
+scp "c:/PROJETOS/agendamento_SAAS (1)/agendamento_SAAS/frontend/src/components/professionals/sections/ValesSection.tsx" root@72.62.138.239:/opt/saas/atendo/frontend/src/components/professionals/sections/
+
+# 9. useDrawerRestore.ts
+scp "c:/PROJETOS/agendamento_SAAS (1)/agendamento_SAAS/frontend/src/hooks/useDrawerRestore.ts" root@72.62.138.239:/opt/saas/atendo/frontend/src/hooks/
+
+# 10. professionalService.ts
+scp "c:/PROJETOS/agendamento_SAAS (1)/agendamento_SAAS/frontend/src/services/professionalService.ts" root@72.62.138.239:/opt/saas/atendo/frontend/src/services/
+
+# 11. page-fixed.tsx
+scp "c:/PROJETOS/agendamento_SAAS (1)/agendamento_SAAS/frontend/src/app/professionals/page-fixed.tsx" root@72.62.138.239:/opt/saas/atendo/frontend/src/app/professionals/

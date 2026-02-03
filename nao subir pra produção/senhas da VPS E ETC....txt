@@ -1,0 +1,186 @@
+CasaEncantada#2019??
+FgTNeWxV1KWAC8T1@a
+
+130q6wEAFTK71VPsqZtcPL99A020Pgqz7XCfzC4BgFcz7qxnmRpxtMmyKNtt3pm1F88XBdULzpMeQyZ
+
+
+Nome: Admin Teste VPS
+Email: admin.teste.vps@exemplo.com  
+Senha: AdminTeste2026!
+Empresa: Teste VPS Endpoints 2026
+Tipo: Clínica Estética
+Plano: TRIAL (14 dias)
+
+
+banco de dados senha PostgreSQL = DdpVXocHR2V+b8TJ0DBd5BHIDFt/py6NUm8FBaUV3K8=
+
+ ssh root@72.62.138.239 "cd /opt/saas/atendo && cat > update_passwords_fixed.sh << 'EOF'
+>> #!/bin/bash
+>> # Gerar senhas fortes
+>> POSTGRES_PASSWORD=\"Ag3nd2026P0stgr3sS3cur3K3y\"
+>> RABBITMQ_PASSWORD=\"Rabb1tMQ2026S3cur3K3yAg3nd\"
+>> REDIS_PASSWORD=\"R3d1s2026S3cur3K3yAg3nd\"
+>>
+>> # Fazer backup do arquivo
+>> cp docker-compose.prod.yml docker-compose.prod.yml.backup    
+>>
+>> # Atualizar senhas no docker-compose.prod.yml
+>> sed -i \"s/POSTGRES_PASSWORD=agendamento_app_password/POSTGRES_PASSWORD=$POSTGRES_PASSWORD/g\" docker-compose.prod.yml       
+>> sed -i \"s/RABBITMQ_PASSWORD=/RABBITMQ_PASSWORD=$RABBITMQ_PASSWORD/g\" docker-compose.prod.yml
+>> sed -i \"s/REDIS_PASSWORD=/REDIS_PASSWORD=$REDIS_PASSWORD/g\" docker-compose.prod.yml
+>>
+>> echo \"Senhas atualizadas:\"
+>> echo \"POSTGRES_PASSWORD: $POSTGRES_PASSWORD\"
+>> echo \"RABBITMQ_PASSWORD: $RABBITMQ_PASSWORD\"
+>> echo \"REDIS_PASSWORD: $REDIS_PASSWORD\"
+>> EOF"
+
+
+
+# Copiar apenas diretórios críticos
+scp -r /e/agendamento_SAAS/frontend root@72.62.138.239:/opt/saas/atendo/
+scp -r /e/agendamento_SAAS/backend root@72.62.138.239:/opt/saas/atendo/
+scp /e/agendamento_SAAS/docker-compose.prod.yml root@72.62.138.239:/opt/saas/atendo/
+
+
+[20:22, 08/01/2026] andrekaidellisola: email: casaencantada....
+senha da VPS : CasaEncantada#2019??
+[20:27, 08/01/2026] andrekaidellisola: ssh root@72.62.138.239
+[20:33, 08/01/2026] andrekaidellisola: atendo.app
+
+
+
+
+ SENHAS FORTES CONFIGURADAS:
+PostgreSQL: Ag3nd_M3nt0_2024_S3cur3
+Redis: R3d1s_2024_S3cur3
+RabbitMQ: Rabb1tMQ_2024_S3cur3
+
+POSTGRES_USER=agendamento_app
+POSTGRES_PASSWORD=Ag3nd_M3nt0_2024_S3cur3
+POSTGRES_DB=agendamento
+REDIS_PASSWORD=R3d1s_2024_S3cur3
+RABBITMQ_PASSWORD=Rabb1tMQ_2024_S3cur3
+SECRET_KEY=SuperSecretKey2024ProductionSaaS_ChangeMeInProd
+ENVIRONMENT=production
+NEXT_PUBLIC_API_URL=oot@srv1257541:/opt/saas/atendo# ^C
+root@srv1257541:/opt/saas/atendo# docker exec -it agendamento_db psql -U agendamento -d agendamento_db -c "
+INSERT INTO companies (name, slug, description, email, phone, website, address, city, state, country, postal_code, business_hours, timezone, currency, primary_color, secondary_color, is_active, subscription_plan, features, settings, created_at, updated_at)
+VALUES (
+    'Studio Elegance', 'studio-elegance', 
+    'Studio de beleza e estética premium com serviços de alta qualidade', 
+    'contato@studioelegance.com.br', '(11) 98765-4321', 
+    'www.studioelegance.com.br', 'Rua das Flores, 123', 
+    'São Paulo', 'SP', 'Brasil', '01402-000',
+    '{\"monday\":{\"start\":\"09:00\",\"end\":\"19:00\",\"closed\":false},\"tuesday\":{\"start\":\"09:00\",\"end\":\"19:00\",\"closed\":false},\"wednesday\":{\"start\":\"09:00\",\"end\":\"19:00\",\"closed\":false},\"thursday\":{\"start\":\"09:00\",\"end\":\"19:00\",\"closed\":false},\"friday\":{\"start\":\"09:00\",\"end\":\"19:00\",\"closed\":false},\"saturday\":{\"start\":\"08:00\",\"end\":\"18:00\",\"closed\":false},\"sunday\":{\"start\":\"08:00\",\"end\":\"13:00\",\"closed\":false}}',
+    'America/Sao_Paulo', 'BRL', '#E91E63', '#9C27B0',
+    true, 'ESSENCIAL', 
+    '[\"whatsapp\",\"online_booking\",\"financial_complete\"]',
+    '{\"online_booking\":{\"enabled\":true,\"description\":\"Agende seus serviços de beleza de forma rápida e conveniente\",\"social_media\":{\"instagram\":\"@studioelegance\",\"facebook\":\"StudioElegance\",\"tiktok\":\"@studioelegance.beleza\"}}}',
+    NOW(), NOW()
+) RETURNING id, name, subscription_plan;
+"
+ id |      name       | subscription_plan 
+----+-----------------+-------------------
+  3 | Studio Elegance | ESSENCIAL
+(1 row)
+
+INSERT 0 1
+root@srv1257541:/opt/saas/atendo# docker exec -it agendamento_db psql -U agendamento -d agendamento_db -c "
+INSERT INTO users (company_id, email, password_hash, full_name, phone, role, is_active, is_verified, bio, specialties, commission_rate, notification_preferences, created_at, updated_at)
+VALUES (
+    1, 'andrekaidellisola@gmail.com', 
+    '\$2b\$12\$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewdBPj6QJw/2Ej7W', -- hash de '@DEDEra45ra45'
+    'André Kaidellis Sola', '(11) 98765-4321', 
+    'OWNER', true, true, 
+    'Proprietário e gestor do Studio Elegance', 
+    '[\"Gestão\",\"Atendimento ao Cliente\"]', 0,
+    '{\"email\":true,\"sms\":false,\"whatsapp\":true,\"push\":true}',
+    NOW(), NOW()
+) RETURNING id, email;
+"
+ERROR:  invalid input value for enum userrole: "OWNER"
+LINE 7:     'OWNER', true, true,
+            ^
+root@srv1257541:/opt/saas/atendo# ^C
+root@srv1257541:/opt/saas/atendo# ^C
+root@srv1257541:/opt/saas/atendo# docker exec -it agendamento_db psql -U agendamento -d agendamento_db -c "
+INSERT INTO service_categories (company_id, name, description, icon, color, is_active, created_at, updated_at)
+VALUES 
+    (1, 'Cabelos', 'Serviços de cortes, tratamentos e coloração capilar', 'scissors', '#E91E63', true, NOW(), NOW()),
+    (1, 'Unhas', 'Manicure, pedicure e esmaltação', 'sparkles', '#9C27B0', true, NOW(), NOW()),
+    (1, 'Estética Facial', 'Tratamentos faciais e limpeza de pele', 'face', '#3F51B5', true, NOW(), NOW()),
+    (1, 'Corpo & Massagem', 'Massagens e tratamentos corporais', 'spa', '#009688', true, NOW(), NOW()),
+    (1, 'Sobrancelha & Design', 'Design de sobrancelhas e alongamento', 'eye', '#FF5722', true, NOW(), NOW())
+RETURNING id, name;
+"
+ERROR:  insert or update on table "service_categories" violates foreign key constraint "service_categories_company_id_fkey"
+DETAIL:  Key (company_id)=(1) is not present in table "companies".
+root@srv1257541:/opt/saas/atendo# docker exec -it agendamento_db psql -U agendamento -d agendamento_db -c "
+INSERT INTO services (company_id, category_id, name, description, price, currency, duration_minutes, is_active, requires_professional, color, commission_rate, created_at, updated_at)
+VALUES 
+    (1, 1, 'Corte Masculino', 'Corte de cabelo masculino com lavagem e finalização', 45.00, 'BRL', 30, true, true, '#E91E63', 20, NOW(), NOW()),   
+    (1, 1, 'Corte Feminino', 'Corte de cabelo feminino com lavagem, escova e finalização', 85.00, 'BRL', 60, true, true, '#E91E63', 25, NOW(), NOW()),
+    (1, 1, 'Coloração Completa', 'Coloração completa com produtos premium', 180.00, 'BRL', 120, true, true, '#E91E63', 30, NOW(), NOW()),
+    (1, 2, 'Manicure Tradicional', 'Manicure com esmaltação tradicional', 40.00, 'BRL', 45, true, true, '#9C27B0', 30, NOW(), NOW()),
+    (1, 2, 'Pedicure Tradicional', 'Pedicure com esmaltação tradicional', 50.00, 'BRL', 60, true, true, '#9C27B0', 30, NOW(), NOW()),
+    (1, 3, 'Limpeza de Pele', 'Limpeza de pele profunda com extração', 120.00, 'BRL', 90, true, true, '#3F51B5', 35, NOW(), NOW()),
+    (1, 4, 'Massagem Relaxante', 'Massagem relaxante com óleos essenciais', 130.00, 'BRL', 60, true, true, '#009688', 40, NOW(), NOW()),
+    (1, 5, 'Design de Sobrancelha', 'Design e correção de sobrancelha', 45.00, 'BRL', 30, true, true, '#FF5722', 30, NOW(), NOW())
+RETURNING id, name;
+"
+ERROR:  insert or update on table "services" violates foreign key constraint "services_company_id_fkey"
+DETAIL:  Key (company_id)=(1) is not present in table "companies".
+root@srv1257541:/opt/saas/atendo# docker exec -it agendamento_db psql -U agendamento -d agendamento_db -c "
+INSERT INTO users (company_id, email, password_hash, full_name, phone, role, is_active, is_verified, bio, specialties, working_hours, commission_rate, notification_preferences, created_at, updated_at)
+VALUES 
+    (1, 'maria.santos@studioelegance.com.br', '\$2b\$12\$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewdBPj6QJw/2Ej7W', 'Maria Santos', '(11) 91234-5678', 'PROFESSIONAL', true, true, 'Hair Stylist com 10 anos de experiência em cortes e colorações', '[\"Corte Masculino\",\"Corte Feminino\",\"Coloração\",\"Progressiva\",\"Hidratação Capilar\"]', '{\"monday\":{\"start\":\"09:00\",\"end\":\"19:00\",\"closed\":false},\"tuesday\":{\"start\":\"09:00\",\"end\":\"19:00\",\"closed\":false},\"wednesday\":{\"start\":\"09:00\",\"end\":\"19:00\",\"closed\":false},\"thursday\":{\"start\":\"09:00\",\"end\":\"19:00\",\"closed\":false},\"friday\":{\"start\":\"09:00\",\"end\":\"19:00\",\"closed\":false},\"saturday\":{\"start\":\"08:00\",\"end\":\"16:00\",\"closed\":false},\"sunday\":{\"closed\":true}}', 25, '{\"email\":true,\"whatsapp\":true,\"push\":true}', NOW(), NOW()),
+    (1, 'ana.oliveira@studioelegance.com.br', '\$2b\$12\$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewdBPj6QJw/2Ej7W', 'Ana Oliveira', '(11) 92345-6789', 'PROFESSIONAL', true, true, 'Esteticista especializada em tratamentos faciais e corporais', '[\"Limpeza de Pele\",\"Hidratação Facial\",\"Peeling Químico\",\"Massagem Relaxante\",\"Drenagem Linfática\"]', '{\"monday\":{\"start\":\"10:00\",\"end\":\"20:00\",\"closed\":false},\"tuesday\":{\"start\":\"10:00\",\"end\":\"20:00\",\"closed\":false},\"wednesday\":{\"start\":\"10:00\",\"end\":\"20:00\",\"closed\":false},\"thursday\":{\"start\":\"10:00\",\"end\":\"20:00\",\"closed\":false},\"friday\":{\"start\":\"10:00\",\"end\":\"20:00\",\"closed\":false},\"saturday\":{\"start\":\"08:00\",\"end\":\"14:00\",\"closed\":false},\"sunday\":{\"closed\":true}}', 35, '{\"email\":true,\"whatsapp\":true,\"push\":true}', NOW(), NOW())
+RETURNING id, email, full_name;
+"
+ERROR:  insert or update on table "users" violates foreign key constraint "users_company_id_fkey"
+DETAIL:  Key (company_id)=(1) is not present in table "companies".
+root@srv1257541:/opt/saas/atendo# docker exec -it agendamento_db psql -U agendamento -d agendamento_db -c "
+SELECT 
+    'companies' as t, count(*) FROM companies
+UNION ALL SELECT 'users', count(*) FROM users
+UNION ALL SELECT 'service_categories', count(*) FROM service_categories
+UNION ALL SELECT 'services', count(*) FROM services;
+"
+         t          | count 
+--------------------+-------
+ companies          |     1
+ users              |     0
+ service_categories |     0
+ services           |     0
+(4 rows)
+
+root@srv1257541:/opt/saas/atendo# 
+CELERY_WORKER_CONCURRENCY=4
+DATABASE_URL=postgresql+psycopg2://agendamento_app:Ag3nd_M3nt0_2024_S3cur3@db:5432/agendamento
+
+
+POSTGRES_DB=agendamento
+POSTGRES_USER=agendamento_app
+POSTGRES_PORT_BINDING=127.0.0.1:5433:5432
+POSTGRES_PASSWORD=Ag3nd2026P0stgr3sS3cur3K3y
+POSTGRES_DATA_PATH=/opt/saas/atendo/data/postgres
+
+POSTGRES_PASSWORD=Ag3nd2026P0stgr3sS3cur3K3y
+DATABASE_URL=postgresql+psycopg2://agendamento_app:Ag3nd2026P0stgr3sS3cur3K3y@db:5432/agendamento       
+REDIS_PASSWORD=R3d1s2026S3cur3K3yAg3nd
+RABBITMQ_PASSWORD=Rabb1tMQ2026S3cur3K3yAg3nd        
+CELERY_BROKER_URL=amqp://admin:Rabb1tMQ2026S3cur3K3yAg3nd@rabbitmq:5672/
+CELERY_RESULT_BACKEND=redis://:R3d1s2026S3cur3K3yAg3nd@redis:6379/0
+
+
+
+ ID: 1
+   Email: admin@belezalatina.com
+   Senha: admin123
+   Nome: Administrador SaaS
+   Role: UserRole.ADMIN
+   SaaS Role: SAAS_OWNER
+   Ativo: True
+   Verificado: True
+   Company ID: None

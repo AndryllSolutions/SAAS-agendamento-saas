@@ -1,18 +1,18 @@
-FROM node:18-alpine
+# Dockerfile para desenvolvimento
+# Como o docker-compose usa volumes, este Dockerfile apenas instala dependências
+FROM node:20-alpine
 
 WORKDIR /app
 
-# Copy package files
+# Copiar apenas arquivos de dependências primeiro (para cache)
 COPY package*.json ./
 
-# Install dependencies
+# Instalar dependências
 RUN npm install
 
-# Copy application code
-COPY . .
-
-# Expose port
+# Expor porta do Next.js
 EXPOSE 3000
 
-# Start development server
+# Comando padrão (será sobrescrito pelo volume mount no docker-compose)
+# O código será montado via volume, então npm run dev funciona
 CMD ["npm", "run", "dev"]

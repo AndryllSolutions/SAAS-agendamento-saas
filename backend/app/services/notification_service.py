@@ -49,6 +49,49 @@ class NotificationService:
             return False
     
     @staticmethod
+    def send_email_with_config(
+        to_email: str,
+        subject: str,
+        body: str,
+        html_body: Optional[str],
+        smtp_config: dict
+    ) -> bool:
+        """Send email notification with custom SMTP config"""
+        try:
+            msg = MIMEMultipart('alternative')
+            from_email = smtp_config.get('from') or smtp_config.get('from_email', settings.SMTP_FROM)
+            from_name = smtp_config.get('from_name', settings.SMTP_FROM_NAME)
+            msg['From'] = f"{from_name} <{from_email}>"
+            msg['To'] = to_email
+            msg['Subject'] = subject
+            
+            # Add plain text part
+            msg.attach(MIMEText(body, 'plain', 'utf-8'))
+            
+            # Add HTML part if provided
+            if html_body:
+                msg.attach(MIMEText(html_body, 'html', 'utf-8'))
+            
+            # Send email with custom SMTP
+            smtp_host = smtp_config.get('host', settings.SMTP_HOST)
+            smtp_port = smtp_config.get('port', settings.SMTP_PORT)
+            smtp_user = smtp_config.get('user')
+            smtp_password = smtp_config.get('password')
+            
+            with smtplib.SMTP(smtp_host, smtp_port) as server:
+                server.starttls()
+                if smtp_user and smtp_password:
+                    server.login(smtp_user, smtp_password)
+                server.send_message(msg)
+            
+            return True
+        except Exception as e:
+            print(f"Error sending email with custom config: {e}")
+            import traceback
+            traceback.print_exc()
+            return False
+    
+    @staticmethod
     def send_sms(to_phone: str, message: str) -> bool:
         """Send SMS notification via Twilio"""
         if not settings.TWILIO_ACCOUNT_SID or not settings.TWILIO_AUTH_TOKEN:

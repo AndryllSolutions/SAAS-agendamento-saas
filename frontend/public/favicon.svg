@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <defs>
+    <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#10b981;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#059669;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Background Circle -->
+  <circle cx="50" cy="50" r="48" fill="url(#grad)"/>
+  
+  <!-- Letter 'A' for Atendo -->
+  <path d="M 50 25 L 70 70 L 62 70 L 58 60 L 42 60 L 38 70 L 30 70 Z M 50 38 L 44 55 L 56 55 Z" fill="white" stroke="white" stroke-width="1"/>
+  
+  <!-- Calendar icon element (small dot) -->
+  <circle cx="50" cy="75" r="3" fill="white"/>
+</svg>

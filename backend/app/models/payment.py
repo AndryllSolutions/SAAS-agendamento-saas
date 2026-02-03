@@ -71,15 +71,16 @@ class Payment(BaseModel):
     
     # Relationships
     appointment = relationship("Appointment", back_populates="payment")
+    financial_transaction = relationship("FinancialTransaction", back_populates="payment", uselist=False)
     
     def __repr__(self):
         return f"<Payment {self.id} - {self.amount} {self.currency}>"
 
 
-class Plan(BaseModel):
-    """Subscription plans for packages"""
+class PackagePlan(BaseModel):
+    """Subscription plans for packages (renamed from Plan to avoid conflict with SaaS Plan)"""
     
-    __tablename__ = "plans"
+    __tablename__ = "package_plans"
     
     company_id = Column(Integer, ForeignKey("companies.id", ondelete="CASCADE"), nullable=False, index=True)
     
@@ -102,20 +103,20 @@ class Plan(BaseModel):
     is_active = Column(Boolean, default=True)
     
     # Relationships
-    subscriptions = relationship("Subscription", back_populates="plan")
+    subscriptions = relationship("PackageSubscription", back_populates="plan")
     
     def __repr__(self):
-        return f"<Plan {self.name}>"
+        return f"<PackagePlan {self.name}>"
 
 
-class Subscription(BaseModel):
-    """User subscriptions to plans"""
+class PackageSubscription(BaseModel):
+    """User subscriptions to package plans (renamed from Subscription to avoid confusion)"""
     
     __tablename__ = "subscriptions"
     
     company_id = Column(Integer, ForeignKey("companies.id", ondelete="CASCADE"), nullable=False, index=True)
     user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
-    plan_id = Column(Integer, ForeignKey("plans.id", ondelete="CASCADE"), nullable=False)
+    plan_id = Column(Integer, ForeignKey("package_plans.id", ondelete="CASCADE"), nullable=False)
     
     # Status
     is_active = Column(Boolean, default=True)
@@ -132,7 +133,7 @@ class Subscription(BaseModel):
     payment_id = Column(Integer, ForeignKey("payments.id", ondelete="SET NULL"), nullable=True)
     
     # Relationships
-    plan = relationship("Plan", back_populates="subscriptions")
+    plan = relationship("PackagePlan", back_populates="subscriptions")
     
     def __repr__(self):
-        return f"<Subscription {self.id} - {self.sessions_remaining} sessions>"
+        return f"<PackageSubscription {self.id} - {self.sessions_remaining} sessions>"

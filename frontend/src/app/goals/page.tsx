@@ -95,8 +95,10 @@ export default function GoalsPage() {
   }
 
   const getProgress = (goal: any) => {
-    if (!goal.current_value || !goal.target_value) return 0
-    return Math.min((goal.current_value / goal.target_value) * 100, 100)
+    const currentValue = Number(goal.current_value || 0)
+    const targetValue = Number(goal.target_value || 0)
+    if (!currentValue || !targetValue) return 0
+    return Math.min((currentValue / targetValue) * 100, 100)
   }
 
   const columns = [
@@ -117,12 +119,12 @@ export default function GoalsPage() {
     { 
       key: 'target_value', 
       label: 'Meta',
-      render: (g: any) => `R$ ${g.target_value?.toFixed(2)}`
+      render: (g: any) => `R$ ${Number(g.target_value || 0).toFixed(2)}`
     },
     { 
       key: 'current_value', 
       label: 'Atual',
-      render: (g: any) => `R$ ${g.current_value?.toFixed(2) || '0.00'}`
+      render: (g: any) => `R$ ${Number(g.current_value || 0).toFixed(2)}`
     },
     {
       key: 'progress',

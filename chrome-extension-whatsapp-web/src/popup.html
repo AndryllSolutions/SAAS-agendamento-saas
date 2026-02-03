@@ -1,0 +1,38 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Capturar Lead</title>
+    <style>
+      body { font-family: Arial, sans-serif; padding: 12px; width: 360px; }
+      label { display: block; font-size: 12px; margin-top: 10px; }
+      input, textarea { width: 100%; box-sizing: border-box; margin-top: 4px; padding: 8px; }
+      button { width: 100%; margin-top: 12px; padding: 10px; }
+      .row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+      .status { margin-top: 8px; font-size: 12px; }
+    </style>
+  </head>
+  <body>
+    <div>
+      <div class="row">
+        <div>
+          <label>Nome</label>
+          <input id="full_name" />
+        </div>
+        <div>
+          <label>WhatsApp</label>
+          <input id="whatsapp" />
+        </div>
+      </div>
+
+      <label>Mensagem (última)</label>
+      <textarea id="notes" rows="5"></textarea>
+
+      <button id="save">Salvar Lead</button>
+      <div class="status" id="status"></div>
+    </div>
+
+    <script src="popup.js"></script>
+  </body>
+</html>

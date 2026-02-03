@@ -4,14 +4,19 @@
 import axios, { AxiosInstance, AxiosError } from 'axios';
 import { getApiUrl } from '@/utils/apiUrl';
 
-const API_URL = getApiUrl();
+const getApiV1BaseUrl = (): string => {
+  if (typeof window !== 'undefined') {
+    return '/api/v1';
+  }
 
-// Remove trailing slash to avoid double slash
-const cleanApiUrl = API_URL.replace(/\/+$/, '');
+  const API_URL = getApiUrl();
+  const cleanApiUrl = API_URL.replace(/\/+$/, '');
+  return `${cleanApiUrl}/api/v1`;
+};
 
 // Create axios instance
 const api: AxiosInstance = axios.create({
-  baseURL: `${cleanApiUrl}/api/v1`,
+  baseURL: getApiV1BaseUrl(),
   headers: {
     'Content-Type': 'application/json',
   },
@@ -190,7 +195,9 @@ api.interceptors.response.use(
         try {
           console.log('[API] Tentando refresh token...');
           // ENDPOINT CORRETO: /auth/refresh (não /auth/refresh-token)
-          const response = await axios.post(`${cleanApiUrl}/api/v1/auth/refresh`, {
+          const base = getApiV1BaseUrl();
+          const refreshUrl = base.startsWith('http') ? `${base}/auth/refresh` : `${base}/auth/refresh`;
+          const response = await axios.post(refreshUrl, {
             refresh_token: refreshToken,
           });
           
@@ -648,7 +655,7 @@ export const appointmentService = {
 // ========== SERVICES SERVICE ==========
 export const serviceService = {
   list: (params?: any) => api.get('/services', { params }),
-  listPublic: (companySlug?: string) => api.get('/services/public', { params: companySlug ? { company_slug: companySlug } : {} }), // Public services without auth
+  listPublic: (params?: any) => api.get('/services/public', { params }), // Public services without auth
   get: (id: number) => api.get(`/services/${id}`),
   create: (data: any) => api.post('/services', data),
   update: (id: number, data: any) => api.put(`/services/${id}`, data),
@@ -658,12 +665,16 @@ export const serviceService = {
 
 // ========== PROFESSIONALS SERVICE ==========
 export const professionalService = {
-  list: () => api.get('/professionals'),
+  list: (params?: any) => api.get('/professionals', { params }),
   get: (id: number) => api.get(`/professionals/${id}`),
   create: (data: any) => api.post('/professionals', data),
   update: (id: number, data: any) => api.put(`/professionals/${id}`, data),
   delete: (id: number) => api.delete(`/professionals/${id}`),
   listPublic: (companySlug?: string) => api.get('/professionals/public', { params: companySlug ? { company_slug: companySlug } : {} }),
+  getSchedule: (id: number, startDate?: string, endDate?: string) => 
+    api.get(`/professionals/${id}/schedule`, { params: { start_date: startDate, end_date: endDate } }),
+  getStatistics: (id: number, startDate?: string, endDate?: string) => 
+    api.get(`/professionals/${id}/statistics`, { params: { start_date: startDate, end_date: endDate } }),
 };
 
 // ========== USERS SERVICE ==========
@@ -672,12 +683,13 @@ export const userService = {
   get: (id: number) => api.get(`/users/${id}`),
   update: (id: number, data: any) => api.put(`/users/${id}`, data),
   updateMe: (data: any) => api.put('/users/me', data),
-  getProfessionals: () => api.get('/professionals'), // Alias for backward compatibility
-  getProfessionalsPublic: (companySlug?: string) => api.get('/professionals/public', { params: companySlug ? { company_slug: companySlug } : {} }),
+  getProfessionals: (params?: any) => api.get('/professionals', { params }), // Endpoint correto é /professionals
+  getAvailableProfessionals: (params?: any) => api.get('/users/professionals/available', { params }),
+  getProfessionalsPublic: (params?: any) => api.get('/professionals/public', { params }), // Public professionals without auth
   getClients: () => api.get('/clients'), // Endpoint correto é /clients
   createClient: (data: any) => api.post('/clients', data), // Endpoint correto é /clients
   // getProfile: () => api.get('/users/profile'), // Endpoint não existe no backend
-  // updateProfile: (data: any) => api.put('/users/profile', data), // Endpoint não existe no backend
+  // updateProfile: (data: any) => api.put('/users/profile'), // Endpoint não existe no backend
 };
 
 // ========== PAYMENTS SERVICE ==========
