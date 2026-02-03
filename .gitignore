@@ -75,3 +75,15 @@ media/
 *.pem
 *.key
 *.crt
+
+# Large backup files
+backups/*.zip
+backups/*.tar.gz
+*.tar.gz
+
+# Test results and temporary files
+test_results_*.json
+postgres_volume_backup_*.tar.gz
+
+# Sensitive data
+"nao subir pra produçao/"
