@@ -1,539 +1,147 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Plus, Edit, Trash2, Star, Clock, DollarSign, User as UserIcon, Mail, Phone, Award, Calendar, BarChart3, MapPin, Search, GripVertical } from 'lucide-react'
 import { toast } from 'sonner'
 import DashboardLayout from '@/components/DashboardLayout'
-import { usePermissions } from '@/hooks/usePermissions'
+import { DrawerStackProvider, useDrawerStack } from '@/components/professionals/DrawerStackManager'
+import EmployeesListPanel from '@/components/professionals/EmployeesListPanel'
+import EmployeeDrawer from '@/components/professionals/EmployeeDrawer'
 import ProfessionalForm from '@/components/ProfessionalForm'
-import { ProfessionalsTable } from '@/components/professionals/ProfessionalsTable'
-import { toAbsoluteImageUrl } from '@/utils/apiUrl'
 
-export default function ProfessionalsPage() {
-  const permissions = usePermissions()
-  const [professionals, setProfessionals] = useState([])
+interface Employee {
+  id: number
+  full_name: string
+  avatar_url?: string
+  email: string
+  phone?: string
+  is_active: boolean
+  commission_rate?: number
+  specialties?: string[]
+  role: string
+  cpf_cnpj?: string
+  date_of_birth?: string
+  bio?: string
+  address?: string
+  city?: string
+  state?: string
+  postal_code?: string
+  working_hours?: any
+}
+
+function EmployeesPageContent() {
+  const [employees, setEmployees] = useState<Employee[]>([])
+  const [selectedEmployeeId, setSelectedEmployeeId] = useState<number | undefined>()
   const [loading, setLoading] = useState(true)
-  const [showModal, setShowModal] = useState(false)
-  const [selectedProfessional, setSelectedProfessional] = useState<any>(null)
-  const [pagination, setPagination] = useState({
-    page: 1,
-    limit: 12,
-    total: 0,
-    totalPages: 0
-  })
-  const [searchTerm, setSearchTerm] = useState('')
-  const [isActiveFilter, setIsActiveFilter] = useState<boolean | null>(null)
-  const [draggedItem, setDraggedItem] = useState<any>(null)
-  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null)
-  const [isReordering, setIsReordering] = useState(false)
+  const [showCreateModal, setShowCreateModal] = useState(false)
+  
+  const { openDrawer, closeAllDrawers } = useDrawerStack()
 
-  const getFullImageUrl = (url: string | undefined | null): string | null => toAbsoluteImageUrl(url)
-
-  useEffect(() => {
-    loadProfessionals()
-  }, [pagination.page, searchTerm, isActiveFilter])
-
-  const loadProfessionals = async () => {
+  const loadEmployees = async () => {
     try {
       setLoading(true)
-      const { professionalService } = await import('@/services/professionalService')
-      
-      // Build params object
-      const params: any = {
-        skip: (pagination.page - 1) * pagination.limit,
-        limit: pagination.limit
-      }
-      
-      // Add search term if exists
-      if (searchTerm.trim()) {
-        params.search = searchTerm.trim()
-      }
-      
-      // Add active filter if set
-      if (isActiveFilter !== null) {
-        params.is_active = isActiveFilter
-      }
-      
-      const response = await professionalService.list(params)
-      setProfessionals(response.data)
-      
-      // Update pagination info if available
-      if (response.headers && response.headers['x-total-count']) {
-        const total = parseInt(response.headers['x-total-count'])
-        setPagination(prev => ({
-          ...prev,
-          total,
-          totalPages: Math.ceil(total / prev.limit)
-        }))
-      }
+      const { professionalService } = await import('@/services/api')
+      const response = await professionalService.list()
+      setEmployees(response.data)
     } catch (error) {
       toast.error('Erro ao carregar profissionais')
+      console.error(error)
     } finally {
       setLoading(false)
     }
   }
 
-  const handleEdit = (prof: any) => {
-    setSelectedProfessional(prof)
-    setShowModal(true)
-  }
+  useEffect(() => {
+    loadEmployees()
+  }, [])
 
-  const handleDelete = async (id: number) => {
-    if (confirm('Deseja realmente excluir este profissional?')) {
-      try {
-        const { professionalService } = await import('@/services/api')
-        await professionalService.delete(id)
-        toast.success('Profissional excluído!')
-        loadProfessionals()
-      } catch (error) {
-        toast.error('Erro ao excluir profissional')
-      }
-    }
-  }
-
-  const handleSuccess = () => {
-    loadProfessionals()
-  }
-
-  const handleReorder = async (fromIndex: number, toIndex: number) => {
-    if (fromIndex === toIndex) return
-
-    setIsReordering(true)
+  const handleEmployeeSelect = (employee: Employee) => {
+    setSelectedEmployeeId(employee.id)
     
-    try {
-      const { professionalService } = await import('@/services/professionalService')
-      
-      // Create reordered array
-      const reorderedProfessionals = [...professionals]
-      const [movedItem] = reorderedProfessionals.splice(fromIndex, 1)
-      reorderedProfessionals.splice(toIndex, 0, movedItem)
-      
-      // Update sort_order for all affected items
-      const reorderItems = reorderedProfessionals.map((prof: any, index: number) => ({
-        id: prof.id,
-        sort_order: index + 1
-      }))
-      
-      // Call API
-      await professionalService.reorder({ items: reorderItems })
-      
-      // Update local state
-      setProfessionals(reorderedProfessionals)
-      
-      toast.success('Profissionais reordenados com sucesso!')
-    } catch (error) {
-      toast.error('Erro ao reordenar profissionais')
-      // Revert to original order
-      loadProfessionals()
-    } finally {
-      setIsReordering(false)
-      setDraggedItem(null)
-      setDragOverIndex(null)
-    }
-  }
-
-  // Drag and drop handlers
-  const handleDragStart = (e: React.DragEvent, item: any, index: number) => {
-    setDraggedItem(item)
-    e.dataTransfer.effectAllowed = 'move'
-    e.dataTransfer.setData('text/plain', index.toString())
-  }
-
-  const handleDragOver = (e: React.DragEvent, index: number) => {
-    e.preventDefault()
-    e.dataTransfer.dropEffect = 'move'
-    setDragOverIndex(index)
-  }
-
-  const handleDragLeave = () => {
-    setDragOverIndex(null)
-  }
-
-  const handleDrop = (e: React.DragEvent, dropIndex: number) => {
-    e.preventDefault()
-    
-    const draggedIndex = parseInt(e.dataTransfer.getData('text/plain'))
-    
-    if (draggedIndex !== dropIndex) {
-      handleReorder(draggedIndex, dropIndex)
-    }
-    
-    setDragOverIndex(null)
-  }
-
-  if (!permissions.canManageUsers()) {
-    return (
-      <DashboardLayout>
-        <div className="text-center py-12">
-          <p className="text-red-600">Você não tem permissão para acessar esta página.</p>
-        </div>
-      </DashboardLayout>
+    openDrawer(1, 
+      <EmployeeDrawer 
+        employee={employee}
+        onClose={() => {
+          setSelectedEmployeeId(undefined)
+        }}
+        onSave={(data) => {
+          // Implementar lógica de salvamento
+          console.log('Saving employee:', data)
+          loadEmployees() // Recarregar lista após salvar
+          toast.success('Profissional atualizado com sucesso!')
+        }}
+      />
     )
+  }
+
+  const handleCreateEmployee = () => {
+    setShowCreateModal(true)
+  }
+
+  const handleCreateSuccess = () => {
+    setShowCreateModal(false)
+    loadEmployees()
+    toast.success('Profissional criado com sucesso!')
+  }
+
+  const handleCreateClose = () => {
+    setShowCreateModal(false)
   }
 
   return (
     <DashboardLayout>
-      <div className="space-y-6">
-        {/* Header */}
-        <div className="flex justify-between items-center">
-          <div>
-            <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent">
-              Profissionais
-            </h1>
-            <p className="text-gray-600 mt-1">Gerencie sua equipe de profissionais</p>
-          </div>
-          <button
-            onClick={() => {
-              setSelectedProfessional(null)
-              setShowModal(true)
-            }}
-            className="bg-gradient-to-r from-primary to-purple-600 text-white px-6 py-3 rounded-lg flex items-center gap-2 hover:shadow-lg transition-all"
-          >
-            <Plus className="w-5 h-5" />
-            Novo Profissional
-          </button>
-        </div>
+      <div className="flex h-full bg-gray-100">
+        {/* Lista de Profissionais */}
+        <EmployeesListPanel
+          employees={employees}
+          selectedEmployeeId={selectedEmployeeId}
+          onEmployeeSelect={handleEmployeeSelect}
+          onCreateEmployee={handleCreateEmployee}
+          loading={loading}
+        />
 
-        {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600 mb-1">Total de Profissionais</p>
-                <p className="text-3xl font-bold text-gray-900">{professionals.length}</p>
-              </div>
-              <div className="bg-blue-100 p-3 rounded-xl">
-                <UserIcon className="w-6 h-6 text-blue-600" />
-              </div>
+        {/* Conteúdo principal */}
+        <div className="flex-1 flex items-center justify-center">
+          {selectedEmployeeId ? (
+            <div className="text-center text-gray-500">
+              <p>Drawer aberto para o profissional selecionado</p>
             </div>
-          </div>
-
-          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600 mb-1">Ativos</p>
-                <p className="text-3xl font-bold text-green-600">
-                  {professionals.filter((p: any) => p.is_active).length}
-                </p>
+          ) : (
+            <div className="text-center">
+              <div className="w-24 h-24 bg-gray-200 rounded-full mx-auto mb-4 flex items-center justify-center">
+                <svg className="w-12 h-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
+                </svg>
               </div>
-              <div className="bg-green-100 p-3 rounded-xl">
-                <Star className="w-6 h-6 text-green-600" />
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600 mb-1">Comissão Média</p>
-                <p className="text-3xl font-bold text-purple-600">
-                  {professionals.length > 0
-                    ? Math.round(
-                        professionals.reduce((sum: number, p: any) => sum + (p.commission_rate || 0), 0) /
-                          professionals.length
-                      )
-                    : 0}%
-                </p>
-              </div>
-              <div className="bg-purple-100 p-3 rounded-xl">
-                <DollarSign className="w-6 h-6 text-purple-600" />
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Search and Filters */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
-              <label className="block text-sm font-medium mb-2">Buscar</label>
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-                <input
-                  type="text"
-                  value={searchTerm}
-                  onChange={(e) => {
-                    setSearchTerm(e.target.value)
-                    setPagination(prev => ({ ...prev, page: 1 })) // Reset to first page
-                  }}
-                  placeholder="Nome ou email..."
-                  className="w-full pl-10 pr-4 py-2 border rounded-lg"
-                />
-              </div>
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium mb-2">Status</label>
-              <select
-                value={isActiveFilter === null ? 'all' : isActiveFilter ? 'active' : 'inactive'}
-                onChange={(e) => {
-                  const value = e.target.value
-                  setIsActiveFilter(value === 'all' ? null : value === 'active')
-                  setPagination(prev => ({ ...prev, page: 1 })) // Reset to first page
-                }}
-                className="w-full px-4 py-2 border rounded-lg"
-              >
-                <option value="all">Todos</option>
-                <option value="active">Ativos</option>
-                <option value="inactive">Inativos</option>
-              </select>
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium mb-2">Itens por página</label>
-              <select
-                value={pagination.limit}
-                onChange={(e) => {
-                  setPagination(prev => ({ 
-                    ...prev, 
-                    limit: parseInt(e.target.value),
-                    page: 1 // Reset to first page
-                  }))
-                }}
-                className="w-full px-4 py-2 border rounded-lg"
-              >
-                <option value={6}>6 itens</option>
-                <option value={12}>12 itens</option>
-                <option value={24}>24 itens</option>
-                <option value={48}>48 itens</option>
-              </select>
-            </div>
-          </div>
-        </div>
-
-        {/* Professionals Grid */}
-        {loading ? (
-          <div className="text-center py-12">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {professionals.map((prof: any) => (
-              <div key={prof.id} className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 hover:shadow-md transition-all">
-                {/* Header */}
-                <div className="flex items-start justify-between mb-4">
-                  <div className="flex items-center gap-3">
-                    {getFullImageUrl(prof.avatar_url) ? (
-                      <img
-                        src={getFullImageUrl(prof.avatar_url) as string}
-                        alt={prof.full_name}
-                        className="w-16 h-16 rounded-full object-cover border-2 border-primary"
-                      />
-                    ) : (
-                      <div className="w-16 h-16 bg-gradient-to-br from-primary to-purple-600 rounded-full flex items-center justify-center text-white text-2xl font-bold">
-                        {prof.full_name.charAt(0)}
-                      </div>
-                    )}
-                    <div>
-                      <h3 className="font-bold text-lg">{prof.full_name}</h3>
-                      <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-semibold ${
-                        prof.is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'
-                      }`}>
-                        {prof.is_active ? 'Ativo' : 'Inativo'}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Info */}
-                <div className="space-y-2 mb-4">
-                  <div className="flex items-center gap-2 text-sm text-gray-600">
-                    <Mail className="w-4 h-4" />
-                    <span className="truncate">{prof.email}</span>
-                  </div>
-                  {prof.phone && (
-                    <div className="flex items-center gap-2 text-sm text-gray-600">
-                      <Phone className="w-4 h-4" />
-                      <span>{prof.phone}</span>
-                    </div>
-                  )}
-                  {prof.cpf_cnpj && (
-                    <div className="flex items-center gap-2 text-sm text-gray-600">
-                      <UserIcon className="w-4 h-4" />
-                      <span>CPF/CNPJ: {prof.cpf_cnpj}</span>
-                    </div>
-                  )}
-                  {prof.date_of_birth && (
-                    <div className="flex items-center gap-2 text-sm text-gray-600">
-                      <Calendar className="w-4 h-4" />
-                      <span>Nasc: {new Date(prof.date_of_birth).toLocaleDateString('pt-BR')}</span>
-                    </div>
-                  )}
-                  {(prof.city || prof.state) && (
-                    <div className="flex items-center gap-2 text-sm text-gray-600">
-                      <MapPin className="w-4 h-4" />
-                      <span>{prof.city}{prof.city && prof.state && ', '}{prof.state}</span>
-                    </div>
-                  )}
-                </div>
-
-                {/* Specialties */}
-                {prof.specialties && prof.specialties.length > 0 && (
-                  <div className="mb-4">
-                    <div className="flex items-center gap-1 mb-2">
-                      <Award className="w-4 h-4 text-primary" />
-                      <span className="text-xs font-semibold text-gray-700">Especialidades:</span>
-                    </div>
-                    <div className="flex flex-wrap gap-1">
-                      {prof.specialties.slice(0, 3).map((spec: string, idx: number) => (
-                        <span key={idx} className="px-2 py-1 bg-primary/10 text-primary text-xs rounded-full">
-                          {spec}
-                        </span>
-                      ))}
-                      {prof.specialties.length > 3 && (
-                        <span className="px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded-full">
-                          +{prof.specialties.length - 3}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                )}
-
-                {/* Working Hours */}
-                {prof.working_hours && (
-                  <div className="mb-4">
-                    <div className="flex items-center gap-1 mb-2">
-                      <Clock className="w-4 h-4 text-primary" />
-                      <span className="text-xs font-semibold text-gray-700">Horários:</span>
-                    </div>
-                    <div className="text-xs text-gray-600">
-                      {Object.entries(prof.working_hours)
-                        .filter(([_, hours]: [string, any]) => hours.enabled)
-                        .slice(0, 3)
-                        .map(([day, hours]: [string, any]) => (
-                          <div key={day} className="capitalize">
-                            {day}: {hours.start} - {hours.end}
-                          </div>
-                        ))}
-                      {Object.entries(prof.working_hours).filter(([_, hours]: [string, any]) => hours.enabled).length > 3 && (
-                        <div className="text-gray-400">+ dias...</div>
-                      )}
-                    </div>
-                  </div>
-                )}
-
-                {/* Bio */}
-                {prof.bio && (
-                  <p className="text-sm text-gray-600 mb-4 line-clamp-2">{prof.bio}</p>
-                )}
-
-                {/* Commission */}
-                <div className="flex items-center justify-between pt-4 border-t border-gray-100 mb-4">
-                  <span className="text-sm text-gray-600">Comissão</span>
-                  <span className="text-lg font-bold text-primary">{prof.commission_rate || 0}%</span>
-                </div>
-
-                {/* Actions */}
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => handleEdit(prof)}
-                    className="flex-1 bg-blue-50 text-blue-700 px-4 py-2 rounded-lg hover:bg-blue-100 transition-colors flex items-center justify-center gap-2"
-                  >
-                    <Edit className="w-4 h-4" />
-                    Editar
-                  </button>
-                  <button
-                    onClick={() => {
-                      // Navigate to schedule or statistics
-                      window.location.href = `/professionals/${prof.id}/schedule`
-                    }}
-                    className="bg-green-50 text-green-700 px-4 py-2 rounded-lg hover:bg-green-100 transition-colors"
-                    title="Ver Agenda"
-                  >
-                    <Calendar className="w-4 h-4" />
-                  </button>
-                  <button
-                    onClick={() => {
-                      // Navigate to statistics
-                      window.location.href = `/professionals/${prof.id}/statistics`
-                    }}
-                    className="bg-purple-50 text-purple-700 px-4 py-2 rounded-lg hover:bg-purple-100 transition-colors"
-                    title="Estatísticas"
-                  >
-                    <BarChart3 className="w-4 h-4" />
-                  </button>
-                  <button
-                    onClick={() => handleDelete(prof.id)}
-                    className="bg-red-50 text-red-700 px-4 py-2 rounded-lg hover:bg-red-100 transition-colors"
-                    title="Excluir"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
-            </div>
-          ))}
-          
-          {/* Pagination */}
-          {pagination.totalPages > 1 && (
-            <div className="flex items-center justify-between mt-6 pt-6 border-t border-gray-100">
-              <div className="text-sm text-gray-600">
-                Mostrando {professionals.length} de {pagination.total} profissionais
-              </div>
-              
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => setPagination(prev => ({ ...prev, page: Math.max(1, prev.page - 1) }))}
-                  disabled={pagination.page === 1}
-                  className="px-3 py-1 border rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
-                >
-                  Anterior
-                </button>
-                
-                <div className="flex items-center gap-1">
-                  {Array.from({ length: Math.min(5, pagination.totalPages) }, (_, i) => {
-                    let pageNum
-                    if (pagination.totalPages <= 5) {
-                      pageNum = i + 1
-                    } else if (pagination.page <= 3) {
-                      pageNum = i + 1
-                    } else if (pagination.page >= pagination.totalPages - 2) {
-                      pageNum = pagination.totalPages - 4 + i
-                    } else {
-                      pageNum = pagination.page - 2 + i
-                    }
-                    
-                    return (
-                      <button
-                        key={pageNum}
-                        onClick={() => setPagination(prev => ({ ...prev, page: pageNum }))}
-                        className={`w-8 h-8 rounded-lg text-sm ${
-                          pagination.page === pageNum
-                            ? 'bg-primary text-white'
-                            : 'border hover:bg-gray-50'
-                        }`}
-                      >
-                        {pageNum}
-                      </button>
-                    )
-                  })}
-                </div>
-                
-                <button
-                  onClick={() => setPagination(prev => ({ ...prev, page: Math.min(pagination.totalPages, prev.page + 1) }))}
-                  disabled={pagination.page === pagination.totalPages}
-                  className="px-3 py-1 border rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
-                >
-                  Próximo
-                </button>
-              </div>
+              <h3 className="text-lg font-medium text-gray-900 mb-2">
+                Selecione um profissional
+              </h3>
+              <p className="text-gray-500">
+                Escolha um profissional da lista para visualizar e editar suas informações
+              </p>
             </div>
           )}
         </div>
-        )}
-        
-        {/* Modal */}
-        {showModal && (
-          <ProfessionalForm
-            professional={selectedProfessional}
-            onClose={() => {
-              setShowModal(false)
-              setSelectedProfessional(null)
-            }}
-            onSuccess={handleSuccess}
-          />
-        )}
       </div>
+
+      {/* Modal de Criação */}
+      {showCreateModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full mx-4 max-h-[90vh] overflow-hidden">
+            <ProfessionalForm
+              onClose={handleCreateClose}
+              onSuccess={handleCreateSuccess}
+            />
+          </div>
+        </div>
+      )}
     </DashboardLayout>
+  )
+}
+
+export default function EmployeesPage() {
+  return (
+    <DrawerStackProvider>
+      <EmployeesPageContent />
+    </DrawerStackProvider>
   )
 }

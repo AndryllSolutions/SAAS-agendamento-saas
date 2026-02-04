@@ -148,7 +148,7 @@ class Company(BaseModel):
     notification_settings = relationship("CompanyNotificationSettings", back_populates="company", uselist=False, cascade="all, delete-orphan")
     theme_settings = relationship("CompanyThemeSettings", back_populates="company", uselist=False, cascade="all, delete-orphan")
     admin_settings = relationship("CompanyAdminSettings", back_populates="company", uselist=False, cascade="all, delete-orphan")
-    scheduling_settings = relationship("SchedulingSettings", back_populates="company", uselist=False, cascade="all, delete-orphan")
+    # scheduling_settings = relationship("SchedulingSettings", back_populates="company", uselist=False, cascade="all, delete-orphan")  # TODO: Implement when SchedulingSettings exists
     
     def __init__(self, **kwargs):
         """Initialize company with auto-generated slug"""

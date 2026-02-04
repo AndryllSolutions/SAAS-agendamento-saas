@@ -367,7 +367,7 @@ export default function SaaSUsersPage() {
                             </span>
                           )}
                           {u.is_verified && (
-                            <Star className="w-4 h-4 text-yellow-500" title="Verificado" />
+                            <Star className="w-4 h-4 text-yellow-500" />
                           )}
                         </div>
                       </td>

@@ -1,10 +1,9 @@
 import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
 import './globals.css'
-import { ThemeProvider } from '@/components/ThemeProvider'
-import { Providers } from '@/components/Providers'
-import { Toaster } from 'sonner'
-import { AuthGuard } from '@/components/AuthGuard'
+
+export const runtime = 'nodejs'
+export const dynamic = 'force-dynamic'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -28,24 +27,7 @@ export default function RootLayout({
   return (
     <html lang="pt-BR">
       <body className={inter.className}>
-        <AuthGuard>
-          <ThemeProvider>
-            <Providers>
-              {children}
-            </Providers>
-            <Toaster 
-              position="bottom-right" 
-              richColors 
-              toastOptions={{
-                style: {
-                  background: '#10b981', // Verde para sucesso
-                  color: '#fff',
-                },
-                className: 'appointment-toast',
-              }}
-            />
-          </ThemeProvider>
-        </AuthGuard>
+        {children}
       </body>
     </html>
   )

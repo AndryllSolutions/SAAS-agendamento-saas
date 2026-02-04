@@ -40,8 +40,8 @@ class ProfessionalVoucher(Base):
     # Voucher details
     amount = Column(Numeric(10, 2), nullable=False)  # Decimal for money
     due_date = Column(Date, nullable=False)
-    category = Column(Enum(VoucherCategory), nullable=False)
-    payment_method = Column(Enum(VoucherPaymentMethod), nullable=False)
+    category = Column(Enum("alimentacao", "transporte", "outros", name="voucher_category"), nullable=False)
+    payment_method = Column(Enum("dinheiro", "pix", "transferencia", "cartao", name="voucher_payment_method"), nullable=False)
     account = Column(String(50), nullable=True)
     
     # Status
@@ -58,11 +58,11 @@ class ProfessionalVoucher(Base):
     is_recurring = Column(Boolean, default=False, nullable=False)
     
     # Recurring details
-    recurring_frequency = Column(Enum(VoucherFrequency), nullable=True)
+    recurring_frequency = Column(Enum("semanal", "quinzenal", "mensal", name="voucher_frequency"), nullable=True)
     recurring_end_date = Column(Date, nullable=True)
     
-    # Financial movement reference (if generated)
-    financial_movement_id = Column(Integer, ForeignKey("financial_movements.id"), nullable=True)
+    # Financial movement reference (if generated) - TODO: Implement when financial_movements table exists
+    # financial_movement_id = Column(Integer, ForeignKey("financial_movements.id"), nullable=True)
     
     # Metadata
     created_at = Column(DateTime(timezone=True), server_default=func.now())
@@ -73,7 +73,7 @@ class ProfessionalVoucher(Base):
     professional = relationship("User", foreign_keys=[professional_id])
     company = relationship("Company", foreign_keys=[company_id])
     creator = relationship("User", foreign_keys=[created_by])
-    financial_movement = relationship("FinancialMovement", foreign_keys=[financial_movement_id])
+    # financial_movement = relationship("FinancialMovement", foreign_keys=[financial_movement_id])  # TODO: Uncomment when table exists
 
     @property
     def status(self) -> str:

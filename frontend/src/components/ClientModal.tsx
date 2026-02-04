@@ -38,9 +38,9 @@ const ClientModal = ({ isOpen, onClose, onSubmit, initialData, loading, mode }: 
     zip_code: '',
     
     // Relacionamentos
-    dependents: [],
+    dependents: [] as any[],
     referred_by: '',
-    hashtags: [],
+    hashtags: [] as string[],
     
     // Observações
     notes: '',

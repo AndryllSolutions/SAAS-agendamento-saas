@@ -1,7 +1,7 @@
 """
 Professional Voucher endpoints
 """
-from typing import List, Optional
+from typing import List, Optional, Union
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
 from sqlalchemy import and_, or_, desc, func
@@ -10,13 +10,15 @@ from app.core.database import get_db
 from app.core.security import get_current_active_user, require_manager
 from app.models.user import User
 from app.models.company import Company
-from app.models.professional_voucher import ProfessionalVoucher, VoucherCategory, VoucherPaymentMethod
+from app.models.professional_voucher import ProfessionalVoucher
 from app.schemas.professional_voucher import (
     VoucherCreate,
     VoucherUpdate,
     VoucherResponse,
     VoucherListResponse,
-    VoucherPayment
+    VoucherPayment,
+    VoucherCategory,
+    VoucherPaymentMethod
 )
 
 router = APIRouter()
@@ -27,7 +29,7 @@ async def list_vouchers(
     professional_id: int,
     page: int = Query(1, ge=1),
     page_size: int = Query(10, ge=1, le=100),
-    category: Optional[VoucherCategory] = Query(None),
+    category: Union[VoucherCategory, None] = Query(None),
     is_paid: Optional[bool] = Query(None),
     start_date: Optional[str] = Query(None),
     end_date: Optional[str] = Query(None),

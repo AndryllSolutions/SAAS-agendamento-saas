@@ -210,7 +210,7 @@ export default function CommandForm({ command, onClose, onSuccess }: CommandForm
     try {
       const [clientsRes, professionalsRes, servicesRes, productsRes, packagesRes] = await Promise.all([
         clientService.list(),
-        userService.listProfessionals(),
+        userService.getProfessionals(),
         serviceService.list(),
         productService.list(),
         packageService.listPredefined()

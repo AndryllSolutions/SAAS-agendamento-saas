@@ -2,27 +2,28 @@
 Professional Voucher Schemas
 """
 from datetime import date
-from typing import Optional
+from typing import Optional, Union
 from pydantic import BaseModel, Field, validator
 from decimal import Decimal
+from enum import Enum
 
 from app.schemas.user import UserResponse
 
 
-class VoucherCategory(str):
+class VoucherCategory(str, Enum):
     ALIMENTACAO = "alimentacao"
     TRANSPORTE = "transporte"
     OUTROS = "outros"
 
 
-class VoucherPaymentMethod(str):
+class VoucherPaymentMethod(str, Enum):
     DINHEIRO = "dinheiro"
     PIX = "pix"
     TRANSFERENCIA = "transferencia"
     CARTAO = "cartao"
 
 
-class VoucherFrequency(str):
+class VoucherFrequency(str, Enum):
     SEMANAL = "semanal"
     QUINZENAL = "quinzenal"
     MENSAL = "mensal"
@@ -67,8 +68,8 @@ class VoucherUpdate(BaseModel):
     """Schema for updating voucher"""
     amount: Optional[Decimal] = Field(None, gt=0)
     due_date: Optional[date] = None
-    category: Optional[VoucherCategory] = None
-    payment_method: Optional[VoucherPaymentMethod] = None
+    category: Union[VoucherCategory, None] = None
+    payment_method: Union[VoucherPaymentMethod, None] = None
     account: Optional[str] = Field(None, max_length=50)
     description: Optional[str] = None
     observation: Optional[str] = None
@@ -77,7 +78,7 @@ class VoucherUpdate(BaseModel):
     is_advance_commission: Optional[bool] = None
     generate_financial_movement: Optional[bool] = None
     is_recurring: Optional[bool] = None
-    recurring_frequency: Optional[VoucherFrequency] = None
+    recurring_frequency: Union[VoucherFrequency, None] = None
     recurring_end_date: Optional[date] = None
 
     @validator('paid_date')

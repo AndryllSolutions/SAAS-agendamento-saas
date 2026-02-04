@@ -78,7 +78,7 @@ export default function CompanyDetailPage() {
   const router = useRouter()
   const params = useParams()
   const companyId = params?.id as string
-  const { user, isAuthenticated, setToken } = useAuthStore()
+  const { user, isAuthenticated, setAuth } = useAuthStore()
   
   const [company, setCompany] = useState<any>(null)
   const [subscription, setSubscription] = useState<any>(null)
@@ -182,7 +182,9 @@ export default function CompanyDetailPage() {
       const response = await saasAdminService.impersonateCompany(parseInt(companyId))
       const { access_token } = response.data
       
-      setToken(access_token)
+      if (user) {
+        setAuth(user, access_token, "")
+      }
       toast.success(`Entrando como ${company.name}...`)
       
       setTimeout(() => {

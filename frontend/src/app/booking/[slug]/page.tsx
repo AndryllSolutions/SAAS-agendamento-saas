@@ -49,8 +49,14 @@ export default function CompanyBookingPage() {
       setProfessionals(profsRes.data || [])
       
       // Carregar informações da empresa (se disponível)
-      if (configRes?.data?.company_name) {
-        setCompanyInfo(configRes.data)
+      if (configRes?.base_url) {
+        setCompanyInfo({
+          company_name: configRes.slug || 'Empresa',
+          base_url: configRes.base_url,
+          general_link: configRes.general_link,
+          instagram_link: configRes.instagram_link,
+          whatsapp_link: configRes.whatsapp_link
+        })
       }
       
       // Carregar configuração de agendamento

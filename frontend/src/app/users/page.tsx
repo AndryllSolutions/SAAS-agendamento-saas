@@ -78,7 +78,7 @@ export default function UsersPage() {
 
   const handleCreateUser = async () => {
     try {
-      await userService.create(formData)
+      await userService.createClient(formData)
       toast.success('Usuário criado com sucesso!')
       setShowCreateModal(false)
       setFormData({
@@ -117,15 +117,17 @@ export default function UsersPage() {
   }
 
   const handleDeleteUser = async (userId: number) => {
-    if (!confirm('Tem certeza que deseja excluir este usuário?')) return
+    // TODO: Implementar método delete no userService
+    // if (!confirm('Tem certeza que deseja excluir este usuário?')) return
     
-    try {
-      await userService.delete(userId)
-      toast.success('Usuário excluído com sucesso!')
-      loadUsers()
-    } catch (error) {
-      toast.error('Erro ao excluir usuário')
-    }
+    // try {
+    //   await userService.delete(userId)
+    //   toast.success('Usuário excluído com sucesso!')
+    //   loadUsers()
+    // } catch (error) {
+    //   toast.error('Erro ao excluir usuário')
+    // }
+    toast.info('Função de exclusão não implementada ainda')
   }
 
   const filteredUsers = users.filter(user => {

@@ -27,7 +27,7 @@ import Link from 'next/link'
 
 export default function CompaniesListPage() {
   const router = useRouter()
-  const { user, isAuthenticated, setToken } = useAuthStore()
+  const { user, isAuthenticated, setAuth } = useAuthStore()
   const [companies, setCompanies] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
@@ -83,7 +83,7 @@ export default function CompaniesListPage() {
       const { access_token } = response.data
       
       // Salvar o novo token
-      setToken(access_token)
+      if (user) { setAuth(user, access_token, ""); }
       
       toast.success(`Entrando como ${company.name}...`)
       

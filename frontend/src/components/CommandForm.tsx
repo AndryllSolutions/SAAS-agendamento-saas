@@ -250,10 +250,7 @@ export default function CommandForm({ command, onClose, onSuccess }: CommandForm
 
     setLoading(true)
     try {
-      await commandService.finish(command.id, {
-        payment_methods: paymentMethods,
-        generate_invoice: generateInvoice,
-      })
+      await commandService.finish(command.id)
       toast.success('Comanda finalizada!')
       onSuccess()
       onClose()

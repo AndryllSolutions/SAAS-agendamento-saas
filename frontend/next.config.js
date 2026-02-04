@@ -1,8 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Forçar App Router e desabilitar Pages Router
+  // App Router habilitado
   experimental: {
-    appDir: true,
     optimizeCss: false,
     optimizePackageImports: ['@radix-ui/react-avatar', '@radix-ui/react-dialog', 'lucide-react'],
     serverComponentsExternalPackages: ['@prisma/client'],
@@ -27,8 +26,8 @@ const nextConfig = {
     // !! WARN !!
     ignoreDuringBuilds: true,
   },
-  // Desabilitar static generation para evitar erros de useSearchParams
-  // output: 'standalone',
+  // Forçar standalone e desabilitar geração estática para evitar prerender errors
+  output: 'standalone',
   trailingSlash: true,
   // Desabilitar geração estática
   generateEtags: false,
