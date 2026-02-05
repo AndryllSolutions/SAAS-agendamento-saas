@@ -2,11 +2,78 @@
 
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { AtendoLogo } from "@/components/AtendoLogo";
 import { useAuthStore } from "@/store/authStore";
 import { authService } from "@/services/api";
 import { Mail, Lock, Eye, EyeOff, ArrowRight, Sparkles, Calendar, Users, Shield, Zap } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+
+// Logo component inline to avoid import issues
+function AtendoLogo({ width = 180 }: { width?: number }) {
+  return (
+    <div className="flex items-center gap-3">
+      <div className="w-12 h-12 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-500/25">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <circle cx="12" cy="12" r="10"/>
+          <polyline points="12 6 12 12 16 14"/>
+        </svg>
+      </div>
+      <div>
+        <span className="text-3xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">aTendo</span>
+        <p className="text-xs text-gray-500 tracking-wide">SISTEMA DE AGENDAMENTO</p>
+      </div>
+    </div>
+  );
+}
+
+// Componente de feature separado para evitar problemas de serialização
+const TOTAL_FEATURES = 4;
+
+function FeatureDisplay({ index }: { index: number }) {
+  switch (index) {
+    case 0:
+      return (
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} transition={{ duration: 0.5 }} className="text-center">
+          <div className="inline-flex items-center justify-center w-16 h-16 mb-6 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl shadow-lg shadow-indigo-500/25">
+            <Calendar className="w-6 h-6 text-white" />
+          </div>
+          <h2 className="text-2xl xl:text-3xl font-bold text-gray-800 mb-4">Agendamentos Inteligentes</h2>
+          <p className="text-lg text-gray-600 leading-relaxed">Gerencie sua agenda com facilidade e nunca perca um compromisso</p>
+        </motion.div>
+      );
+    case 1:
+      return (
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} transition={{ duration: 0.5 }} className="text-center">
+          <div className="inline-flex items-center justify-center w-16 h-16 mb-6 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl shadow-lg shadow-indigo-500/25">
+            <Users className="w-6 h-6 text-white" />
+          </div>
+          <h2 className="text-2xl xl:text-3xl font-bold text-gray-800 mb-4">Gestão de Clientes</h2>
+          <p className="text-lg text-gray-600 leading-relaxed">Mantenha todos os dados dos seus clientes organizados em um só lugar</p>
+        </motion.div>
+      );
+    case 2:
+      return (
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} transition={{ duration: 0.5 }} className="text-center">
+          <div className="inline-flex items-center justify-center w-16 h-16 mb-6 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl shadow-lg shadow-indigo-500/25">
+            <Shield className="w-6 h-6 text-white" />
+          </div>
+          <h2 className="text-2xl xl:text-3xl font-bold text-gray-800 mb-4">Segurança Total</h2>
+          <p className="text-lg text-gray-600 leading-relaxed">Seus dados protegidos com criptografia de ponta a ponta</p>
+        </motion.div>
+      );
+    case 3:
+      return (
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} transition={{ duration: 0.5 }} className="text-center">
+          <div className="inline-flex items-center justify-center w-16 h-16 mb-6 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl shadow-lg shadow-indigo-500/25">
+            <Zap className="w-6 h-6 text-white" />
+          </div>
+          <h2 className="text-2xl xl:text-3xl font-bold text-gray-800 mb-4">Automação Completa</h2>
+          <p className="text-lg text-gray-600 leading-relaxed">Automatize lembretes e confirmações via WhatsApp e e-mail</p>
+        </motion.div>
+      );
+    default:
+      return null;
+  }
+}
 
 export default function LoginPage() {
   const router = useRouter();
@@ -19,37 +86,13 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [currentFeature, setCurrentFeature] = useState(0);
 
-  // Features carousel
-  const features = [
-    {
-      icon: <Calendar className="w-6 h-6" />,
-      title: "Agendamentos Inteligentes",
-      description: "Gerencie sua agenda com facilidade e nunca perca um compromisso",
-    },
-    {
-      icon: <Users className="w-6 h-6" />,
-      title: "Gestão de Clientes",
-      description: "Mantenha todos os dados dos seus clientes organizados em um só lugar",
-    },
-    {
-      icon: <Shield className="w-6 h-6" />,
-      title: "Segurança Total",
-      description: "Seus dados protegidos com criptografia de ponta a ponta",
-    },
-    {
-      icon: <Zap className="w-6 h-6" />,
-      title: "Automação Completa",
-      description: "Automatize lembretes e confirmações via WhatsApp e e-mail",
-    },
-  ];
-
   // Auto-rotate features
   useEffect(() => {
     const interval = setInterval(() => {
-      setCurrentFeature((prev) => (prev + 1) % features.length);
+      setCurrentFeature((prev) => (prev + 1) % TOTAL_FEATURES);
     }, 4000);
     return () => clearInterval(interval);
-  }, [features.length]);
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -135,31 +178,12 @@ export default function LoginPage() {
           {/* Features Carousel */}
           <div className="max-w-lg">
             <AnimatePresence mode="wait">
-              <motion.div
-                key={currentFeature}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                transition={{ duration: 0.5 }}
-                className="text-center"
-              >
-                <div className="inline-flex items-center justify-center w-16 h-16 mb-6 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl shadow-lg shadow-indigo-500/25">
-                  <div className="text-white">
-                    {features[currentFeature].icon}
-                  </div>
-                </div>
-                <h2 className="text-2xl xl:text-3xl font-bold text-gray-800 mb-4">
-                  {features[currentFeature].title}
-                </h2>
-                <p className="text-lg text-gray-600 leading-relaxed">
-                  {features[currentFeature].description}
-                </p>
-              </motion.div>
+              <FeatureDisplay key={currentFeature} index={currentFeature} />
             </AnimatePresence>
 
             {/* Feature indicators */}
             <div className="flex justify-center gap-2 mt-8">
-              {features.map((_, index) => (
+              {[0, 1, 2, 3].map((index) => (
                 <button
                   key={index}
                   onClick={() => setCurrentFeature(index)}
@@ -202,7 +226,7 @@ export default function LoginPage() {
         <div className="w-full max-w-md">
           {/* Logo */}
           <div className="flex justify-center mb-8">
-            <AtendoLogo width={180} variant="full" />
+            <AtendoLogo />
           </div>
 
           {/* Welcome Text */}
