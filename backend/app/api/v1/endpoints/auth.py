@@ -316,130 +316,185 @@ async def _perform_login(email: str, password: str, db: Session):
     """
     Internal function to perform login logic
     """
-    # Find user
-    user = db.query(User).filter(User.email == email).first()
-    
-    if not user or not verify_password(password, user.password_hash):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Credenciais inválidas",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
+    try:
+        # Find user
+        user = db.query(User).filter(User.email == email).first()
+        
+        if not user:
+            print(f"❌ Login failed: User not found - {email}")
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Credenciais inválidas",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+        
+        print(f"🔍 User found: {email}, checking password...")
+        
+        if not verify_password(password, user.password_hash):
+            print(f"❌ Login failed: Invalid password for {email}")
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Credenciais inválidas",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+        
+        print(f"✅ Password verified for {email}")
 
-    # MIGRAÇÃO AUTOMÁTICA: Se o usuário usou hash bcrypt, migrar para argon2
-    if user and user.password_hash.startswith("$2b$"):  # Identifica hash bcrypt
-        try:
-            # Gerar novo hash argon2 com a senha verificada
-            new_hash = get_password_hash(password)
-            user.password_hash = new_hash
-            db.commit()  # Salvar no banco
-            print(f"✅ Hash migrado para argon2: {user.email}")
-        except Exception as e:
-            print(f"⚠️ Erro na migração de hash: {e}")
-            # Não falhar o login se a migração der erro
-            pass
-    
-    if not user.is_active:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Usuário inativo"
-        )
-    
-    # Determine scope and roles from user
-    saas_role = None
-    company_role = None
-    company_id = None
-    scope = Scope.COMPANY
-    
-    # Check if user has SaaS role
-    if user.saas_role:
-        saas_role = user.saas_role
-        # SaaS admins can login with SaaS scope (no company_id required)
-        # But they can also login with company scope if they have a company_id
-        if user.company_id:
-            # User has both SaaS role and company - default to company scope
-            scope = Scope.COMPANY
-            company_id = user.company_id
-        else:
-            # Pure SaaS admin - use SaaS scope
-            scope = Scope.SAAS
-    
-    # Get company role from CompanyUser if available
-    if user.company_id:
-        company_id = user.company_id
-        company_user = db.query(CompanyUser).filter(
-            CompanyUser.user_id == user.id,
-            CompanyUser.company_id == user.company_id
-        ).first()
-        if company_user:
-            # Get role from CompanyUser (now uses CompanyRole enum)
-            # Handle both enum and string values (for compatibility)
-            role_value = company_user.role
-            
-            # If it's already a CompanyRole enum, get its value
-            if isinstance(role_value, CompanyRole):
-                company_role = role_value.value
-            # If it's a string, try to convert it
-            elif isinstance(role_value, str):
-                # Try direct conversion first
-                try:
-                    company_role = CompanyRole(role_value).value
-                except (ValueError, AttributeError):
-                    # Map legacy role strings to CompanyRole
-                    role_mapping = {
-                        "OWNER": CompanyRole.COMPANY_OWNER.value,
-                        "MANAGER": CompanyRole.COMPANY_MANAGER.value,
-                        "PROFESSIONAL": CompanyRole.COMPANY_PROFESSIONAL.value,
-                        "RECEPTIONIST": CompanyRole.COMPANY_RECEPTIONIST.value,
-                        "FINANCE": CompanyRole.COMPANY_FINANCE.value,
-                        "CLIENT": CompanyRole.COMPANY_CLIENT.value,
-                        "READ_ONLY": CompanyRole.COMPANY_READ_ONLY.value,
-                        "OPERATOR": CompanyRole.COMPANY_OPERATOR.value,
-                        # Handle enum values that might be stored as strings
-                        "COMPANY_OWNER": CompanyRole.COMPANY_OWNER.value,
-                        "COMPANY_MANAGER": CompanyRole.COMPANY_MANAGER.value,
-                        "COMPANY_PROFESSIONAL": CompanyRole.COMPANY_PROFESSIONAL.value,
-                        "COMPANY_RECEPTIONIST": CompanyRole.COMPANY_RECEPTIONIST.value,
-                        "COMPANY_FINANCE": CompanyRole.COMPANY_FINANCE.value,
-                        "COMPANY_CLIENT": CompanyRole.COMPANY_CLIENT.value,
-                        "COMPANY_READ_ONLY": CompanyRole.COMPANY_READ_ONLY.value,
-                        "COMPANY_OPERATOR": CompanyRole.COMPANY_OPERATOR.value,
-                    }
-                    company_role = role_mapping.get(role_value.upper(), CompanyRole.COMPANY_CLIENT.value)
+        # MIGRAÇÃO AUTOMÁTICA: Se o usuário usou hash bcrypt, migrar para argon2
+        if user.password_hash.startswith("$2b$"):  # Identifica hash bcrypt
+            try:
+                # Gerar novo hash argon2 com a senha verificada
+                new_hash = get_password_hash(password)
+                user.password_hash = new_hash
+                db.commit()  # Salvar no banco
+                print(f"✅ Hash migrado para argon2: {user.email}")
+            except Exception as e:
+                print(f"⚠️ Erro na migração de hash: {e}")
+                # Não falhar o login se a migração der erro
+                pass
+        
+        if not user.is_active:
+            print(f"❌ Login failed: User inactive - {email}")
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Usuário inativo"
+            )
+        
+        print(f"✅ User active: {email}")
+        
+        # Determine scope and roles from user
+        saas_role = None
+        company_role = None
+        company_id = None
+        scope = Scope.COMPANY
+        
+        # Check if user has SaaS role
+        if user.saas_role:
+            saas_role = user.saas_role
+            # SaaS admins can login with SaaS scope (no company_id required)
+            # But they can also login with company scope if they have a company_id
+            if user.company_id:
+                # User has both SaaS role and company - default to company scope
+                scope = Scope.COMPANY
+                company_id = user.company_id
             else:
-                # Fallback to default
+                # Pure SaaS admin - use SaaS scope
+                scope = Scope.SAAS
+        
+        # Get company role from CompanyUser if available
+        if user.company_id:
+            company_id = user.company_id
+            try:
+                company_user = db.query(CompanyUser).filter(
+                    CompanyUser.user_id == user.id,
+                    CompanyUser.company_id == user.company_id
+                ).first()
+                if company_user:
+                    # Get role from CompanyUser (now uses CompanyRole enum)
+                    # Handle both enum and string values (for compatibility)
+                    role_value = company_user.role
+                    
+                    # If it's already a CompanyRole enum, get its value
+                    if isinstance(role_value, CompanyRole):
+                        company_role = role_value.value
+                    # If it's a string, try to convert it
+                    elif isinstance(role_value, str):
+                        # Try direct conversion first
+                        try:
+                            company_role = CompanyRole(role_value).value
+                        except (ValueError, AttributeError):
+                            # Map legacy role strings to CompanyRole
+                            role_mapping = {
+                                "OWNER": CompanyRole.COMPANY_OWNER.value,
+                                "MANAGER": CompanyRole.COMPANY_MANAGER.value,
+                                "PROFESSIONAL": CompanyRole.COMPANY_PROFESSIONAL.value,
+                                "RECEPTIONIST": CompanyRole.COMPANY_RECEPTIONIST.value,
+                                "FINANCE": CompanyRole.COMPANY_FINANCE.value,
+                                "CLIENT": CompanyRole.COMPANY_CLIENT.value,
+                                "READ_ONLY": CompanyRole.COMPANY_READ_ONLY.value,
+                                "OPERATOR": CompanyRole.COMPANY_OPERATOR.value,
+                                # Handle enum values that might be stored as strings
+                                "COMPANY_OWNER": CompanyRole.COMPANY_OWNER.value,
+                                "COMPANY_MANAGER": CompanyRole.COMPANY_MANAGER.value,
+                                "COMPANY_PROFESSIONAL": CompanyRole.COMPANY_PROFESSIONAL.value,
+                                "COMPANY_RECEPTIONIST": CompanyRole.COMPANY_RECEPTIONIST.value,
+                                "COMPANY_FINANCE": CompanyRole.COMPANY_FINANCE.value,
+                                "COMPANY_CLIENT": CompanyRole.COMPANY_CLIENT.value,
+                                "COMPANY_READ_ONLY": CompanyRole.COMPANY_READ_ONLY.value,
+                                "COMPANY_OPERATOR": CompanyRole.COMPANY_OPERATOR.value,
+                            }
+                            company_role = role_mapping.get(role_value.upper(), CompanyRole.COMPANY_CLIENT.value)
+                    else:
+                        # Fallback to default
+                        company_role = CompanyRole.COMPANY_CLIENT.value
+                else:
+                    # Fallback: map User.role to CompanyRole
+                    role_mapping = {
+                        UserRole.OWNER: CompanyRole.COMPANY_OWNER.value,
+                        UserRole.MANAGER: CompanyRole.COMPANY_MANAGER.value,
+                        UserRole.PROFESSIONAL: CompanyRole.COMPANY_PROFESSIONAL.value,
+                        UserRole.RECEPTIONIST: CompanyRole.COMPANY_RECEPTIONIST.value,
+                        UserRole.FINANCE: CompanyRole.COMPANY_FINANCE.value,
+                        UserRole.CLIENT: CompanyRole.COMPANY_CLIENT.value,
+                        UserRole.READ_ONLY: CompanyRole.COMPANY_READ_ONLY.value,
+                    }
+                    company_role = role_mapping.get(user.role, CompanyRole.COMPANY_CLIENT.value)
+            except Exception as e:
+                print(f"⚠️ Erro ao buscar company_user: {e}")
                 company_role = CompanyRole.COMPANY_CLIENT.value
-        else:
-            # Fallback: map User.role to CompanyRole
-            role_mapping = {
-                UserRole.OWNER: CompanyRole.COMPANY_OWNER.value,
-                UserRole.MANAGER: CompanyRole.COMPANY_MANAGER.value,
-                UserRole.PROFESSIONAL: CompanyRole.COMPANY_PROFESSIONAL.value,
-                UserRole.RECEPTIONIST: CompanyRole.COMPANY_RECEPTIONIST.value,
-                UserRole.FINANCE: CompanyRole.COMPANY_FINANCE.value,
-                UserRole.CLIENT: CompanyRole.COMPANY_CLIENT.value,
-                UserRole.READ_ONLY: CompanyRole.COMPANY_READ_ONLY.value,
-            }
-            company_role = role_mapping.get(user.role, CompanyRole.COMPANY_CLIENT.value)
-    
-    # Create tokens with RBAC context
-    access_token = create_access_token(
-        data={"sub": str(user.id)},
-        saas_role=saas_role,
-        company_role=company_role,
-        company_id=company_id,
-        scope=scope.value
-    )
-    refresh_token = create_refresh_token(data={"sub": str(user.id)})
-    
-    # Return tokens and user data
-    user_response = UserResponse.model_validate(user).model_copy(update={"company_role": company_role})
-    return {
-        "access_token": access_token,
-        "refresh_token": refresh_token,
-        "token_type": "bearer",
-        "user": user_response
-    }
+        
+        print(f"✅ Roles: saas_role={saas_role}, company_role={company_role}, scope={scope.value}")
+        
+        # Create tokens with RBAC context
+        try:
+            access_token = create_access_token(
+                data={"sub": str(user.id)},
+                saas_role=saas_role,
+                company_role=company_role,
+                company_id=company_id,
+                scope=scope.value
+            )
+            refresh_token = create_refresh_token(data={"sub": str(user.id)})
+            print(f"✅ Tokens created successfully")
+        except Exception as e:
+            print(f"❌ Erro ao criar tokens: {e}")
+            import traceback
+            traceback.print_exc()
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Erro ao criar tokens: {str(e)}"
+            )
+        
+        # Return tokens and user data
+        try:
+            user_response = UserResponse.model_validate(user).model_copy(update={"company_role": company_role})
+            print(f"✅ UserResponse created successfully")
+        except Exception as e:
+            print(f"❌ Erro ao criar UserResponse: {e}")
+            import traceback
+            traceback.print_exc()
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Erro ao processar dados do usuário: {str(e)}"
+            )
+        
+        print(f"✅ Login successful for {email}")
+        return {
+            "access_token": access_token,
+            "refresh_token": refresh_token,
+            "token_type": "bearer",
+            "user": user_response
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"❌ Erro inesperado no login: {e}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Erro interno no login: {str(e)}"
+        )
 
 @router.post("/refresh", response_model=Token)
 async def refresh_token(
