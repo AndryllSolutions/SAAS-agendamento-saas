@@ -1,0 +1,20 @@
+/** @type {import('tailwindcss').Config} */
+module.exports = {
+  content: [
+    './app/**/*.{js,ts,jsx,tsx,mdx}',
+    './components/**/*.{js,ts,jsx,tsx,mdx}',
+  ],
+  theme: {
+    extend: {
+      colors: {
+        primary: {
+          DEFAULT: '#3b82f6',
+          foreground: '#ffffff',
+        },
+        background: '#ffffff',
+        foreground: '#0f172a',
+      },
+    },
+  },
+  plugins: [],
+}

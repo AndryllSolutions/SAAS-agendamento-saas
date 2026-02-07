@@ -1,4 +1,5 @@
 from sqlalchemy import Column, String, Integer, ForeignKey, Text, Boolean, JSON
+from sqlalchemy.orm import relationship
 
 from app.models.base import BaseModel
 
@@ -29,3 +30,10 @@ class Lead(BaseModel):
     raw_payload = Column(JSON, nullable=True)
 
     is_converted = Column(Boolean, default=False, nullable=False, index=True)
+
+    # Relationships
+    created_by = relationship("User", foreign_keys=[created_by_user_id], back_populates="leads_created")
+    converted_client = relationship("Client", foreign_keys=[converted_client_id])
+
+    def __repr__(self):
+        return f"<Lead {self.full_name}>"

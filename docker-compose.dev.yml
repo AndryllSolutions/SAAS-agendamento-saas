@@ -45,7 +45,7 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     container_name: agendamento_dev_backend
-    command: sh -c "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload --log-level debug"
+    command: sh -c "alembic upgrade heads && uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload --log-level debug"
     volumes:
       - ./backend:/app
       - ./backend/uploads:/app/uploads

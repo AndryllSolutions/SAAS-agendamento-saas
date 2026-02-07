@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100">
+  <defs>
+    <style>
+      .atendo-bg { fill: #175EF0; }
+      .atendo-letter { fill: white; font-family: Arial, sans-serif; font-size: 72px; font-weight: bold; }
+    </style>
+  </defs>
+  <!-- Background -->
+  <rect class="atendo-bg" width="100" height="100" rx="20"/>
+  <!-- Letter A -->
+  <text class="atendo-letter" x="50" y="75" text-anchor="middle">A</text>
+</svg>

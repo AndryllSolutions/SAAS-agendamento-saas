@@ -170,6 +170,42 @@ services:
       timeout: 10s
       retries: 3
 
+  # Mobile (React Native Web)
+  mobile:
+    build:
+      context: ./mobile/atendo-mobile
+      dockerfile: Dockerfile
+    container_name: agendamento_mobile_prod
+    environment:
+      - REACT_APP_API_URL=${NEXT_PUBLIC_API_URL}
+    depends_on:
+      - backend
+    networks:
+      - agendamento_network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:80/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Landing Page (Vite/React separado)
+  landing:
+    build:
+      context: ./landing
+      dockerfile: Dockerfile
+    container_name: agendamento_landing_prod
+    environment:
+      - NODE_ENV=production
+    networks:
+      - agendamento_network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:80/ || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
   # Nginx Reverse Proxy (Docker-first)
   nginx:
     image: nginx:alpine

@@ -1,0 +1,22 @@
+// Central export point for all services
+export { default as authService } from './authService';
+export { default as appointmentsService } from './appointmentsService';
+export { default as clientsService } from './clientsService';
+export { default as servicesService } from './servicesService';
+export { default as professionalsService } from './professionalsService';
+export { default as financialService } from './financialService';
+export { default as paymentsService } from './paymentsService';
+export { default as reportsService } from './reportsService';
+export { default as packagesService } from './packagesService';
+export { default as commandsService } from './commandsService';
+export { default as notificationsService } from './notificationsService';
+export { default as whatsappService } from './whatsappService';
+export { default as promotionsService } from './promotionsService';
+export { default as settingsService } from './settingsService';
+export { default as goalsService } from './goalsService';
+export { default as purchasesService } from './purchasesService';
+export { default as cashbackService } from './cashbackService';
+export { default as invoicesService } from './invoicesService';
+export { default as evaluationsService } from './evaluationsService';
+export { default as anamnesesService } from './anamnesesService';
+export { default as productsService } from './productsService';

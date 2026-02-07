@@ -6,6 +6,26 @@ import { persist, createJSONStorage } from 'zustand/middleware';
 import { jwtDecode } from 'jwt-decode';
 import { getApiUrl } from '@/utils/apiUrl';
 
+// Safe localStorage that only works in browser
+const safeLocalStorage = {
+  getItem: (name: string): string | null => {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      return window.localStorage.getItem(name);
+    }
+    return null;
+  },
+  setItem: (name: string, value: string): void => {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      window.localStorage.setItem(name, value);
+    }
+  },
+  removeItem: (name: string): void => {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      window.localStorage.removeItem(name);
+    }
+  },
+};
+
 interface User {
   id: number;
   email: string;
@@ -57,9 +77,9 @@ export const useAuthStore = create<AuthState>()(
         const tokenData = jwtDecode<TokenPayload>(accessToken);
         const expiresIn = (tokenData.exp * 1000) - Date.now();
         
-        // Salvar tokens no localStorage (compatibilidade)
-        localStorage.setItem('access_token', accessToken);
-        localStorage.setItem('refresh_token', refreshToken);
+        // Salvar tokens no localStorage (só no browser)
+        safeLocalStorage.setItem('access_token', accessToken);
+        safeLocalStorage.setItem('refresh_token', refreshToken);
         
         // Tentar salvar em cookies tambem (mais seguro para SSR)
         if (typeof document !== 'undefined') {
@@ -91,9 +111,9 @@ export const useAuthStore = create<AuthState>()(
       setUser: (user) => set({ user }),
       
       logout: () => {
-        // Limpar localStorage
-        localStorage.removeItem('access_token');
-        localStorage.removeItem('refresh_token');
+        // Limpar localStorage (só no browser)
+        safeLocalStorage.removeItem('access_token');
+        safeLocalStorage.removeItem('refresh_token');
         
         // Limpar cookies
         if (typeof document !== 'undefined') {
@@ -222,7 +242,7 @@ export const useAuthStore = create<AuthState>()(
     }),
     {
       name: 'auth-storage',
-      storage: createJSONStorage(() => localStorage),
+      storage: createJSONStorage(() => safeLocalStorage),
       partialize: (state) => ({
         user: state.user,
         accessToken: state.accessToken,
@@ -259,8 +279,8 @@ export const useAuthStore = create<AuthState>()(
             return;
           }
 
-          localStorage.setItem('access_token', state.accessToken);
-          localStorage.setItem('refresh_token', state.refreshToken);
+          safeLocalStorage.setItem('access_token', state.accessToken);
+          safeLocalStorage.setItem('refresh_token', state.refreshToken);
           state.setAuth(state.user, state.accessToken, state.refreshToken);
         } catch (error) {
           console.error('Erro ao validar token:', error);

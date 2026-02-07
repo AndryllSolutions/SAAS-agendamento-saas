@@ -70,9 +70,9 @@ class ProfessionalVoucher(Base):
     created_by = Column(Integer, ForeignKey("users.id"), nullable=True)
     
     # Relationships
-    professional = relationship("User", foreign_keys=[professional_id])
+    professional = relationship("User", foreign_keys=[professional_id], back_populates="professional_vouchers")
     company = relationship("Company", foreign_keys=[company_id])
-    creator = relationship("User", foreign_keys=[created_by])
+    creator = relationship("User", foreign_keys=[created_by], back_populates="vouchers_created")
     # financial_movement = relationship("FinancialMovement", foreign_keys=[financial_movement_id])  # TODO: Uncomment when table exists
 
     @property
@@ -118,10 +118,10 @@ class ProfessionalCommissionRule(Base):
     created_by = Column(Integer, ForeignKey("users.id"), nullable=True)
     
     # Relationships
-    professional = relationship("User", foreign_keys=[professional_id])
+    professional = relationship("User", foreign_keys=[professional_id], back_populates="commission_rules")
     company = relationship("Company", foreign_keys=[company_id])
     service = relationship("Service", foreign_keys=[service_id])
-    creator = relationship("User", foreign_keys=[created_by])
+    creator = relationship("User", foreign_keys=[created_by], back_populates="commission_rules_created")
 
     def __repr__(self):
         return f"<ProfessionalCommissionRule(id={self.id}, professional_id={self.professional_id}, commission_value={self.commission_value})>"

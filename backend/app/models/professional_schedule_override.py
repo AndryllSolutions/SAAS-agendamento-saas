@@ -42,9 +42,9 @@ class ProfessionalScheduleOverride(Base):
     created_by = Column(Integer, ForeignKey("users.id"), nullable=True)
     
     # Relationships
-    professional = relationship("User", foreign_keys=[professional_id])
+    professional = relationship("User", foreign_keys=[professional_id], back_populates="schedule_overrides")
     company = relationship("Company", foreign_keys=[company_id])
-    creator = relationship("User", foreign_keys=[created_by])
+    creator = relationship("User", foreign_keys=[created_by], back_populates="schedule_overrides_created")
 
     def __repr__(self):
         return f"<ProfessionalScheduleOverride(id={self.id}, professional_id={self.professional_id}, description='{self.description}')>"
@@ -79,10 +79,10 @@ class ProfessionalServiceOverride(Base):
     created_by = Column(Integer, ForeignKey("users.id"), nullable=True)
     
     # Relationships
-    professional = relationship("User", foreign_keys=[professional_id])
+    professional = relationship("User", foreign_keys=[professional_id], back_populates="service_overrides")
     company = relationship("Company", foreign_keys=[company_id])
     service = relationship("Service", foreign_keys=[service_id])
-    creator = relationship("User", foreign_keys=[created_by])
+    creator = relationship("User", foreign_keys=[created_by], back_populates="service_overrides_created")
 
     def __repr__(self):
         return f"<ProfessionalServiceOverride(id={self.id}, professional_id={self.professional_id}, service_id={self.service_id})>"

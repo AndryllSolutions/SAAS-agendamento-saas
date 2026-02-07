@@ -1,11 +1,15 @@
+"use client";
+
+import LandingPage from "./landing/LandingPage";
+import { LanguageProvider } from "./landing/contexts/LanguageContext";
+import { CurrencyProvider } from "./landing/contexts/CurrencyContext";
+
 export default function HomePage() {
   return (
-    <div style={{ padding: '20px' }}>
-      <h1>Atendo - Sistema de Agendamento</h1>
-      <p>App Router funcionando!</p>
-      <a href="/login" style={{ color: 'blue', textDecoration: 'underline' }}>
-        Ir para Login
-      </a>
-    </div>
-  )
+    <LanguageProvider>
+      <CurrencyProvider>
+        <LandingPage />
+      </CurrencyProvider>
+    </LanguageProvider>
+  );
 }
