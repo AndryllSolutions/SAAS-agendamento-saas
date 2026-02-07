@@ -1,7 +1,7 @@
 """
 WaitList Model - Smart waiting list for cancelled appointments
 """
-from sqlalchemy import Column, String, Integer, ForeignKey, DateTime, Boolean, Enum as SQLEnum, JSON, Text
+from sqlalchemy import Column, String, Integer, ForeignKey, DateTime, Boolean, Enum as SQLEnum
 from sqlalchemy.orm import relationship
 import enum
 
@@ -39,15 +39,14 @@ class WaitList(BaseModel):
     priority = Column(Integer, default=0)
     
     # Notification
-    raw_payload = Column(JSON, nullable=True)
-    is_converted = Column(Boolean, default=False, nullable=False, index=True)
-    
-    # Relationships
-    client_crm = relationship("Client", foreign_keys=[client_crm_id], back_populates="waitlist_entries")
-    professional = relationship("User", foreign_keys=[professional_id], back_populates="waitlist_as_professional")
+    notified_at = Column(DateTime, nullable=True)
+    expires_at = Column(DateTime, nullable=True)
     
     # Notes
-    notes = Column(Text, nullable=True)
+    notes = Column(String(500), nullable=True)
+    
+    # Relationships (NOVO)
+    client_crm = relationship("Client", foreign_keys=[client_crm_id], back_populates="waitlist_entries")
     
     def __repr__(self):
         return f"<WaitList {self.id} - {self.status}>"

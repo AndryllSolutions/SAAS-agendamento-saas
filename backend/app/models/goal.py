@@ -45,7 +45,6 @@ class Goal(BaseModel):
     
     # Relationships
     company = relationship("Company", back_populates="goals")
-    user = relationship("User", foreign_keys=[professional_id], back_populates="goals")
     professional = relationship("User", foreign_keys=[professional_id], back_populates="goals")
     
     def __repr__(self):

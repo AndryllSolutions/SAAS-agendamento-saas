@@ -41,7 +41,7 @@ class Evaluation(BaseModel):
     # Relationships
     company = relationship("Company")
     client = relationship("Client")
-    professional = relationship("User", foreign_keys=[professional_id], back_populates="evaluations_received")
+    professional = relationship("User", foreign_keys=[professional_id])
     appointment = relationship("Appointment")
     
     def __repr__(self):

@@ -5,7 +5,6 @@ from app.models.company_subscription import CompanySubscription
 from app.models.company_user import CompanyUser
 from app.models.api_key import APIKey
 from app.models.plan import Plan as SaasPlan
-from app.models.audit_log import AuditLog
 from app.models.user import User, UserRole
 from app.models.service import Service, ServiceCategory
 from app.models.service_professional import ServiceProfessional
@@ -69,7 +68,6 @@ __all__ = [
     "CompanyUser",
     "APIKey",
     "SaasPlan",
-    "AuditLog",
     "User",
     "UserRole",
     "Service",

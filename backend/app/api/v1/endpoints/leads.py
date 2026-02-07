@@ -1,9 +1,7 @@
 from typing import List, Optional
-
 from fastapi import APIRouter, Depends, HTTPException, status, Query, Request
 from sqlalchemy.orm import Session
 from sqlalchemy import or_
-
 from app.core.dependencies import get_db_with_tenant, get_db_with_api_key_tenant_context
 from app.core.rbac import get_current_user_context, CurrentUserContext
 from app.models.api_key import APIKey
@@ -11,12 +9,11 @@ from app.models.company import Company
 from app.models.lead import Lead
 from app.models.client import Client
 from app.schemas.lead import LeadCreate, LeadUpdate, LeadResponse
-
+from app.utils.whatsapp_sanitizer import sanitize_lead_data, validate_lead_data
 
 router = APIRouter(
     redirect_slashes=False
 )
-
 
 @router.post("", response_model=LeadResponse, status_code=status.HTTP_201_CREATED)
 @router.post("/", response_model=LeadResponse, status_code=status.HTTP_201_CREATED, include_in_schema=False)
@@ -121,7 +118,7 @@ async def get_lead(
     ).first()
 
     if not lead:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Lead não encontrado")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Lead nao encontrado")
 
     return LeadResponse.model_validate(lead)
 
@@ -139,7 +136,7 @@ async def update_lead(
     ).first()
 
     if not lead:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Lead não encontrado")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Lead nao encontrado")
 
     update_data = payload.model_dump(exclude_unset=True, exclude_none=False)
     for k, v in update_data.items():
@@ -162,7 +159,7 @@ async def convert_lead_to_client(
     ).first()
 
     if not lead:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Lead não encontrado")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Lead nao encontrado")
 
     if lead.is_converted:
         return LeadResponse.model_validate(lead)
@@ -220,24 +217,69 @@ async def convert_lead_to_client(
 async def capture_whatsapp_web_lead(
     request: Request,
     payload: LeadCreate,
-    ctx: tuple[Session, APIKey, Company] = Depends(get_db_with_api_key_tenant_context("leads:write"))
+    context: CurrentUserContext = Depends(get_current_user_context),
+    db: Session = Depends(get_db_with_tenant)
 ):
-    db, api_key, company = ctx
+    """
+    Captura um lead do WhatsApp Web via extensao do Chrome.
+    
+    A extensao envia dados brutos que podem estar em diferentes formatos.
+    Este endpoint sanitiza e valida os dados antes de salvar.
+    
+    Estrategia de sanitizacao:
+    1. Remove caracteres especiais de numeros de telefone
+    2. Tenta extrair numero de multiplas fontes (whatsapp, wa_url, phone, nome)
+    3. Valida dados minimos (nome + telefone)
+    4. Evita duplicatas por numero de WhatsApp
+    """
+    company_id = context.company_id
 
-    lead_data = payload.model_dump(exclude_none=True)
+    # Sanitiza dados da extensao
+    clean_name, clean_phone, _ = sanitize_lead_data(
+        full_name=payload.full_name,
+        phone=payload.phone,
+        whatsapp=payload.whatsapp,
+        wa_url=payload.wa_url,
+        email=payload.email,
+    )
 
+    # Valida dados minimos
+    is_valid, error_msg = validate_lead_data(clean_name, clean_phone)
+    if not is_valid:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Dados invalidos: {error_msg}. Verifique se o nome e numero de telefone foram capturados corretamente."
+        )
+
+    # Tenta encontrar lead existente por numero de WhatsApp
     existing = None
-    if payload.whatsapp:
+    if clean_phone:
         existing = db.query(Lead).filter(
-            Lead.company_id == company.id,
-            Lead.whatsapp == payload.whatsapp,
+            Lead.company_id == company_id,
+            Lead.whatsapp == clean_phone,
+            Lead.is_converted.is_(False)
+        ).first()
+
+    # Se nao encontrou por WhatsApp, tenta por email
+    if not existing and payload.email:
+        existing = db.query(Lead).filter(
+            Lead.company_id == company_id,
+            Lead.email == payload.email,
             Lead.is_converted.is_(False)
         ).first()
 
     if existing:
-        for k, v in lead_data.items():
-            setattr(existing, k, v)
-        existing.created_by_user_id = api_key.user_id
+        # Atualiza lead existente com novos dados
+        existing.full_name = clean_name or existing.full_name
+        existing.whatsapp = clean_phone or existing.whatsapp
+        existing.email = payload.email or existing.email
+        existing.phone = payload.phone or existing.phone
+        existing.wa_chat_title = payload.wa_chat_title or existing.wa_chat_title
+        existing.wa_last_message = payload.wa_last_message or existing.wa_last_message
+        existing.wa_url = payload.wa_url or existing.wa_url
+        existing.image_url = payload.image_url or existing.image_url
+        existing.notes = payload.notes or existing.notes
+        existing.created_by_user_id = context.user_id
         existing.source = existing.source or "whatsapp_web"
         existing.stage = existing.stage or "inbox"
         existing.status = existing.status or "new"
@@ -245,13 +287,23 @@ async def capture_whatsapp_web_lead(
         db.refresh(existing)
         return LeadResponse.model_validate(existing)
 
+    # Cria novo lead com dados sanitizados
     lead = Lead(
-        **lead_data,
-        company_id=company.id,
-        created_by_user_id=api_key.user_id,
+        company_id=company_id,
+        created_by_user_id=context.user_id,
+        full_name=clean_name,
+        email=payload.email,
+        phone=payload.phone,
+        whatsapp=clean_phone,
         source=payload.source or "whatsapp_web",
         stage=payload.stage or "inbox",
         status=payload.status or "new",
+        notes=payload.notes,
+        wa_chat_title=payload.wa_chat_title,
+        wa_last_message=payload.wa_last_message,
+        wa_url=payload.wa_url,
+        image_url=payload.image_url,
+        raw_payload=payload.raw_payload,
         is_converted=False,
     )
 

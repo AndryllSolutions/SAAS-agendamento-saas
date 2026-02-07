@@ -72,7 +72,6 @@ class Payment(BaseModel):
     # Relationships
     appointment = relationship("Appointment", back_populates="payment")
     financial_transaction = relationship("FinancialTransaction", back_populates="payment", uselist=False)
-    user = relationship("User", back_populates="payments")
     
     def __repr__(self):
         return f"<Payment {self.id} - {self.amount} {self.currency}>"
@@ -135,7 +134,6 @@ class PackageSubscription(BaseModel):
     
     # Relationships
     plan = relationship("PackagePlan", back_populates="subscriptions")
-    user = relationship("User", back_populates="package_subscriptions")
     
     def __repr__(self):
         return f"<PackageSubscription {self.id} - {self.sessions_remaining} sessions>"

@@ -47,7 +47,7 @@ class AuditLog(Base):
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False, index=True)
     
     # Relationships
-    user = relationship("User", foreign_keys=[user_id], back_populates="audit_logs")
+    user = relationship("User", foreign_keys=[user_id], backref="audit_logs")
 
     def __repr__(self):
         return f"<AuditLog(id={self.id}, action={self.action}, user={self.user_email}, created_at={self.created_at})>"

@@ -64,7 +64,7 @@ class Command(BaseModel):
     # Relationships
     company = relationship("Company", back_populates="commands")
     client = relationship("Client", back_populates="commands")
-    professional = relationship("User", foreign_keys=[professional_id], back_populates="commands_as_professional")
+    professional = relationship("User", foreign_keys=[professional_id], back_populates="commands")
     appointment = relationship("Appointment", foreign_keys=[appointment_id], back_populates="command")
     items = relationship("CommandItem", back_populates="command", cascade="all, delete-orphan")
     financial_transactions = relationship("FinancialTransaction", back_populates="command")

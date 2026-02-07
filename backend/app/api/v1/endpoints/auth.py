@@ -23,7 +23,9 @@ from app.models.user import User, UserRole
 from app.models.company import Company
 from app.models.company_subscription import CompanySubscription
 from app.models.company_user import CompanyUser
-from app.schemas.user import UserCreate, UserResponse, UserLogin, Token, PasswordChange, RefreshTokenRequest
+from app.schemas.user import UserCreate, UserResponse, UserLogin, Token, PasswordChange, RefreshTokenRequest, PasswordReset, PasswordResetConfirm
+import secrets
+import time
 
 router = APIRouter(
     redirect_slashes=False  # 🔥 DESATIVA REDIRECT AUTOMÁTICO - CORS FIX
@@ -315,186 +317,158 @@ async def login_json(
 async def _perform_login(email: str, password: str, db: Session):
     """
     Internal function to perform login logic
+    Com proteção contra brute force: lockout após 5 tentativas falhas.
     """
-    try:
-        # Find user
-        user = db.query(User).filter(User.email == email).first()
-        
-        if not user:
-            print(f"❌ Login failed: User not found - {email}")
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Credenciais inválidas",
-                headers={"WWW-Authenticate": "Bearer"},
-            )
-        
-        print(f"🔍 User found: {email}, checking password...")
-        
-        if not verify_password(password, user.password_hash):
-            print(f"❌ Login failed: Invalid password for {email}")
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Credenciais inválidas",
-                headers={"WWW-Authenticate": "Bearer"},
-            )
-        
-        print(f"✅ Password verified for {email}")
-
-        # MIGRAÇÃO AUTOMÁTICA: Se o usuário usou hash bcrypt, migrar para argon2
-        if user.password_hash.startswith("$2b$"):  # Identifica hash bcrypt
-            try:
-                # Gerar novo hash argon2 com a senha verificada
-                new_hash = get_password_hash(password)
-                user.password_hash = new_hash
-                db.commit()  # Salvar no banco
-                print(f"✅ Hash migrado para argon2: {user.email}")
-            except Exception as e:
-                print(f"⚠️ Erro na migração de hash: {e}")
-                # Não falhar o login se a migração der erro
-                pass
-        
-        if not user.is_active:
-            print(f"❌ Login failed: User inactive - {email}")
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Usuário inativo"
-            )
-        
-        print(f"✅ User active: {email}")
-        
-        # Determine scope and roles from user
-        saas_role = None
-        company_role = None
-        company_id = None
-        scope = Scope.COMPANY
-        
-        # Check if user has SaaS role
-        if user.saas_role:
-            saas_role = user.saas_role
-            # SaaS admins can login with SaaS scope (no company_id required)
-            # But they can also login with company scope if they have a company_id
-            if user.company_id:
-                # User has both SaaS role and company - default to company scope
-                scope = Scope.COMPANY
-                company_id = user.company_id
-            else:
-                # Pure SaaS admin - use SaaS scope
-                scope = Scope.SAAS
-        
-        # Get company role from CompanyUser if available
-        if user.company_id:
-            company_id = user.company_id
-            try:
-                company_user = db.query(CompanyUser).filter(
-                    CompanyUser.user_id == user.id,
-                    CompanyUser.company_id == user.company_id
-                ).first()
-                if company_user:
-                    # Get role from CompanyUser (now uses CompanyRole enum)
-                    # Handle both enum and string values (for compatibility)
-                    role_value = company_user.role
-                    
-                    # If it's already a CompanyRole enum, get its value
-                    if isinstance(role_value, CompanyRole):
-                        company_role = role_value.value
-                    # If it's a string, try to convert it
-                    elif isinstance(role_value, str):
-                        # Try direct conversion first
-                        try:
-                            company_role = CompanyRole(role_value).value
-                        except (ValueError, AttributeError):
-                            # Map legacy role strings to CompanyRole
-                            role_mapping = {
-                                "OWNER": CompanyRole.COMPANY_OWNER.value,
-                                "MANAGER": CompanyRole.COMPANY_MANAGER.value,
-                                "PROFESSIONAL": CompanyRole.COMPANY_PROFESSIONAL.value,
-                                "RECEPTIONIST": CompanyRole.COMPANY_RECEPTIONIST.value,
-                                "FINANCE": CompanyRole.COMPANY_FINANCE.value,
-                                "CLIENT": CompanyRole.COMPANY_CLIENT.value,
-                                "READ_ONLY": CompanyRole.COMPANY_READ_ONLY.value,
-                                "OPERATOR": CompanyRole.COMPANY_OPERATOR.value,
-                                # Handle enum values that might be stored as strings
-                                "COMPANY_OWNER": CompanyRole.COMPANY_OWNER.value,
-                                "COMPANY_MANAGER": CompanyRole.COMPANY_MANAGER.value,
-                                "COMPANY_PROFESSIONAL": CompanyRole.COMPANY_PROFESSIONAL.value,
-                                "COMPANY_RECEPTIONIST": CompanyRole.COMPANY_RECEPTIONIST.value,
-                                "COMPANY_FINANCE": CompanyRole.COMPANY_FINANCE.value,
-                                "COMPANY_CLIENT": CompanyRole.COMPANY_CLIENT.value,
-                                "COMPANY_READ_ONLY": CompanyRole.COMPANY_READ_ONLY.value,
-                                "COMPANY_OPERATOR": CompanyRole.COMPANY_OPERATOR.value,
-                            }
-                            company_role = role_mapping.get(role_value.upper(), CompanyRole.COMPANY_CLIENT.value)
-                    else:
-                        # Fallback to default
-                        company_role = CompanyRole.COMPANY_CLIENT.value
-                else:
-                    # Fallback: map User.role to CompanyRole
-                    role_mapping = {
-                        UserRole.OWNER: CompanyRole.COMPANY_OWNER.value,
-                        UserRole.MANAGER: CompanyRole.COMPANY_MANAGER.value,
-                        UserRole.PROFESSIONAL: CompanyRole.COMPANY_PROFESSIONAL.value,
-                        UserRole.RECEPTIONIST: CompanyRole.COMPANY_RECEPTIONIST.value,
-                        UserRole.FINANCE: CompanyRole.COMPANY_FINANCE.value,
-                        UserRole.CLIENT: CompanyRole.COMPANY_CLIENT.value,
-                        UserRole.READ_ONLY: CompanyRole.COMPANY_READ_ONLY.value,
-                    }
-                    company_role = role_mapping.get(user.role, CompanyRole.COMPANY_CLIENT.value)
-            except Exception as e:
-                print(f"⚠️ Erro ao buscar company_user: {e}")
-                company_role = CompanyRole.COMPANY_CLIENT.value
-        
-        print(f"✅ Roles: saas_role={saas_role}, company_role={company_role}, scope={scope.value}")
-        
-        # Create tokens with RBAC context
-        try:
-            access_token = create_access_token(
-                data={"sub": str(user.id)},
-                saas_role=saas_role,
-                company_role=company_role,
-                company_id=company_id,
-                scope=scope.value
-            )
-            refresh_token = create_refresh_token(data={"sub": str(user.id)})
-            print(f"✅ Tokens created successfully")
-        except Exception as e:
-            print(f"❌ Erro ao criar tokens: {e}")
-            import traceback
-            traceback.print_exc()
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=f"Erro ao criar tokens: {str(e)}"
-            )
-        
-        # Return tokens and user data
-        try:
-            user_response = UserResponse.model_validate(user).model_copy(update={"company_role": company_role})
-            print(f"✅ UserResponse created successfully")
-        except Exception as e:
-            print(f"❌ Erro ao criar UserResponse: {e}")
-            import traceback
-            traceback.print_exc()
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=f"Erro ao processar dados do usuário: {str(e)}"
-            )
-        
-        print(f"✅ Login successful for {email}")
-        return {
-            "access_token": access_token,
-            "refresh_token": refresh_token,
-            "token_type": "bearer",
-            "user": user_response
-        }
-    except HTTPException:
-        raise
-    except Exception as e:
-        print(f"❌ Erro inesperado no login: {e}")
-        import traceback
-        traceback.print_exc()
+    from app.services.token_blacklist import (
+        is_account_locked, record_failed_login, lock_account, clear_failed_logins
+    )
+    
+    # Verificar se a conta está bloqueada
+    if await is_account_locked(email):
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Erro interno no login: {str(e)}"
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Conta temporariamente bloqueada por excesso de tentativas. Tente novamente em 15 minutos.",
         )
+    
+    # Find user
+    user = db.query(User).filter(User.email == email).first()
+    
+    if not user or not verify_password(password, user.password_hash):
+        # Registrar tentativa falha
+        attempts = await record_failed_login(email)
+        
+        # Bloquear após 5 tentativas
+        if attempts >= 5:
+            await lock_account(email, duration=900)  # 15 minutos
+            raise HTTPException(
+                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                detail="Conta bloqueada por 15 minutos após 5 tentativas falhas.",
+            )
+        
+        remaining = 5 - attempts
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Credenciais inválidas",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    
+    # Login bem-sucedido: limpar tentativas
+    await clear_failed_logins(email)
+
+    # MIGRAÇÃO AUTOMÁTICA: Se o usuário usou hash bcrypt, migrar para argon2
+    if user and user.password_hash.startswith("$2b$"):  # Identifica hash bcrypt
+        try:
+            # Gerar novo hash argon2 com a senha verificada
+            new_hash = get_password_hash(password)
+            user.password_hash = new_hash
+            db.commit()  # Salvar no banco
+            print(f"✅ Hash migrado para argon2: {user.email}")
+        except Exception as e:
+            print(f"⚠️ Erro na migração de hash: {e}")
+            # Não falhar o login se a migração der erro
+            pass
+    
+    if not user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Usuário inativo"
+        )
+    
+    # Determine scope and roles from user
+    saas_role = None
+    company_role = None
+    company_id = None
+    scope = Scope.COMPANY
+    
+    # Check if user has SaaS role
+    if user.saas_role:
+        saas_role = user.saas_role
+        # SaaS admins can login with SaaS scope (no company_id required)
+        # But they can also login with company scope if they have a company_id
+        if user.company_id:
+            # User has both SaaS role and company - default to company scope
+            scope = Scope.COMPANY
+            company_id = user.company_id
+        else:
+            # Pure SaaS admin - use SaaS scope
+            scope = Scope.SAAS
+    
+    # Get company role from CompanyUser if available
+    if user.company_id:
+        company_id = user.company_id
+        company_user = db.query(CompanyUser).filter(
+            CompanyUser.user_id == user.id,
+            CompanyUser.company_id == user.company_id
+        ).first()
+        if company_user:
+            # Get role from CompanyUser (now uses CompanyRole enum)
+            # Handle both enum and string values (for compatibility)
+            role_value = company_user.role
+            
+            # If it's already a CompanyRole enum, get its value
+            if isinstance(role_value, CompanyRole):
+                company_role = role_value.value
+            # If it's a string, try to convert it
+            elif isinstance(role_value, str):
+                # Try direct conversion first
+                try:
+                    company_role = CompanyRole(role_value).value
+                except (ValueError, AttributeError):
+                    # Map legacy role strings to CompanyRole
+                    role_mapping = {
+                        "OWNER": CompanyRole.COMPANY_OWNER.value,
+                        "MANAGER": CompanyRole.COMPANY_MANAGER.value,
+                        "PROFESSIONAL": CompanyRole.COMPANY_PROFESSIONAL.value,
+                        "RECEPTIONIST": CompanyRole.COMPANY_RECEPTIONIST.value,
+                        "FINANCE": CompanyRole.COMPANY_FINANCE.value,
+                        "CLIENT": CompanyRole.COMPANY_CLIENT.value,
+                        "READ_ONLY": CompanyRole.COMPANY_READ_ONLY.value,
+                        "OPERATOR": CompanyRole.COMPANY_OPERATOR.value,
+                        # Handle enum values that might be stored as strings
+                        "COMPANY_OWNER": CompanyRole.COMPANY_OWNER.value,
+                        "COMPANY_MANAGER": CompanyRole.COMPANY_MANAGER.value,
+                        "COMPANY_PROFESSIONAL": CompanyRole.COMPANY_PROFESSIONAL.value,
+                        "COMPANY_RECEPTIONIST": CompanyRole.COMPANY_RECEPTIONIST.value,
+                        "COMPANY_FINANCE": CompanyRole.COMPANY_FINANCE.value,
+                        "COMPANY_CLIENT": CompanyRole.COMPANY_CLIENT.value,
+                        "COMPANY_READ_ONLY": CompanyRole.COMPANY_READ_ONLY.value,
+                        "COMPANY_OPERATOR": CompanyRole.COMPANY_OPERATOR.value,
+                    }
+                    company_role = role_mapping.get(role_value.upper(), CompanyRole.COMPANY_CLIENT.value)
+            else:
+                # Fallback to default
+                company_role = CompanyRole.COMPANY_CLIENT.value
+        else:
+            # Fallback: map User.role to CompanyRole
+            role_mapping = {
+                UserRole.OWNER: CompanyRole.COMPANY_OWNER.value,
+                UserRole.MANAGER: CompanyRole.COMPANY_MANAGER.value,
+                UserRole.PROFESSIONAL: CompanyRole.COMPANY_PROFESSIONAL.value,
+                UserRole.RECEPTIONIST: CompanyRole.COMPANY_RECEPTIONIST.value,
+                UserRole.FINANCE: CompanyRole.COMPANY_FINANCE.value,
+                UserRole.CLIENT: CompanyRole.COMPANY_CLIENT.value,
+                UserRole.READ_ONLY: CompanyRole.COMPANY_READ_ONLY.value,
+            }
+            company_role = role_mapping.get(user.role, CompanyRole.COMPANY_CLIENT.value)
+    
+    # Create tokens with RBAC context (inclui iat para revogação)
+    access_token = create_access_token(
+        data={"sub": str(user.id), "iat": int(time.time())},
+        saas_role=saas_role,
+        company_role=company_role,
+        company_id=company_id,
+        scope=scope.value
+    )
+    refresh_token = create_refresh_token(data={"sub": str(user.id)})
+    
+    # Return tokens and user data
+    user_response = UserResponse.model_validate(user).model_copy(update={"company_role": company_role})
+    return {
+        "access_token": access_token,
+        "refresh_token": refresh_token,
+        "token_type": "bearer",
+        "user": user_response
+    }
 
 @router.post("/refresh", response_model=Token)
 async def refresh_token(
@@ -625,4 +599,151 @@ async def change_password(
     current_user.password_hash = get_password_hash(password_data.new_password)
     db.commit()
     
-    return {"message": "Senha alterada com sucesso"}
+    # Revogar TODAS as sessões anteriores (força re-login)
+    from app.services.token_blacklist import blacklist_all_user_tokens
+    await blacklist_all_user_tokens(current_user.id)
+    
+    return {"message": "Senha alterada com sucesso. Todas as sessões anteriores foram encerradas."}
+
+# ============================================================
+# FORGOT PASSWORD / RESET PASSWORD
+# ============================================================
+
+@router.post("/forgot-password")
+async def forgot_password(
+    payload: PasswordReset,
+    db: Session = Depends(get_db)
+):
+    """
+    Solicitar reset de senha.
+    Envia email com link/token para redefinir a senha.
+    
+    ANTI-ENUMERAÇÃO: Sempre retorna a mesma mensagem,
+    independente de o email existir ou não.
+    """
+    from app.services.token_blacklist import store_reset_token
+    from app.services.notification_service import NotificationService
+    
+    # Sempre retorna sucesso (anti-enumeração)
+    success_message = "Se o email estiver cadastrado, você receberá instruções para redefinir sua senha."
+    
+    user = db.query(User).filter(User.email == payload.email).first()
+    
+    if not user:
+        # Retorna a mesma mensagem para não revelar se o email existe
+        return {"message": success_message}
+    
+    # Gerar token seguro
+    reset_token = secrets.token_urlsafe(48)
+    
+    # Armazenar no Redis (válido por 1 hora)
+    await store_reset_token(payload.email, reset_token, ttl=3600)
+    
+    # Montar link de reset
+    frontend_url = settings.FRONTEND_URL or "https://atendo.website"
+    reset_link = f"{frontend_url}/reset-password?token={reset_token}"
+    
+    # Enviar email
+    subject = "Redefinição de Senha - Atendo"
+    body = f"""Olá {user.full_name},
+
+Recebemos uma solicitação para redefinir sua senha.
+
+Clique no link abaixo para criar uma nova senha:
+{reset_link}
+
+Este link é válido por 1 hora.
+
+Se você não solicitou esta alteração, ignore este email.
+
+Atenciosamente,
+Equipe Atendo"""
+
+    html_body = f"""
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+        <div style="text-align: center; margin-bottom: 30px;">
+            <h1 style="color: #7C3AED;">aTendo</h1>
+        </div>
+        <h2 style="color: #333;">Redefinição de Senha</h2>
+        <p>Olá <strong>{user.full_name}</strong>,</p>
+        <p>Recebemos uma solicitação para redefinir sua senha.</p>
+        <div style="text-align: center; margin: 30px 0;">
+            <a href="{reset_link}" 
+               style="background-color: #7C3AED; color: white; padding: 14px 28px; 
+                      text-decoration: none; border-radius: 8px; font-weight: bold;
+                      display: inline-block;">
+                Redefinir Senha
+            </a>
+        </div>
+        <p style="color: #666; font-size: 14px;">Este link é válido por <strong>1 hora</strong>.</p>
+        <p style="color: #666; font-size: 14px;">Se você não solicitou esta alteração, ignore este email.</p>
+        <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;">
+        <p style="color: #999; font-size: 12px; text-align: center;">
+            Equipe Atendo - Sistema de Agendamento Online
+        </p>
+    </div>
+    """
+    
+    NotificationService.send_email(
+        to_email=payload.email,
+        subject=subject,
+        body=body,
+        html_body=html_body
+    )
+    
+    return {"message": success_message}
+
+
+@router.post("/reset-password")
+async def reset_password(
+    payload: PasswordResetConfirm,
+    db: Session = Depends(get_db)
+):
+    """
+    Redefinir senha usando token recebido por email.
+    """
+    from app.services.token_blacklist import verify_reset_token, invalidate_reset_token, blacklist_all_user_tokens
+    
+    # Verificar token
+    email = await verify_reset_token(payload.token)
+    
+    if email is None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Token inválido ou expirado. Solicite um novo link de redefinição."
+        )
+    
+    # Buscar usuário
+    user = db.query(User).filter(User.email == email).first()
+    
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Usuário não encontrado"
+        )
+    
+    # Atualizar senha
+    user.password_hash = get_password_hash(payload.new_password)
+    db.commit()
+    
+    # Invalidar o token de reset (uso único)
+    await invalidate_reset_token(payload.token)
+    
+    # Revogar todas as sessões anteriores
+    await blacklist_all_user_tokens(user.id)
+    
+    return {"message": "Senha redefinida com sucesso. Faça login com sua nova senha."}
+
+
+@router.post("/logout")
+async def logout(
+    current_user: User = Depends(get_current_active_user),
+):
+    """
+    Logout - revoga o token atual do usuário.
+    """
+    from app.services.token_blacklist import blacklist_all_user_tokens
+    
+    await blacklist_all_user_tokens(current_user.id)
+    
+    return {"message": "Logout realizado com sucesso"}

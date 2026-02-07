@@ -139,7 +139,6 @@ class FinancialTransaction(BaseModel):
     subscription_sale = relationship("SubscriptionSale", back_populates="financial_transactions")
     payment = relationship("Payment", back_populates="financial_transaction")
     invoice = relationship("Invoice", back_populates="financial_transaction")
-    user = relationship("User", back_populates="financial_transactions")
     professional = relationship("User", foreign_keys=[professional_id], back_populates="financial_transactions_as_professional")
     
     def __repr__(self):

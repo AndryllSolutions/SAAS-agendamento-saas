@@ -41,7 +41,7 @@ class Settings(BaseSettings):
     # Security
     SECRET_KEY: str
     ALGORITHM: str = "HS256"
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 480  # 8 horas (era 30 min)
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 30  # 30 minutos (segurança)
     REFRESH_TOKEN_EXPIRE_DAYS: int = 30  # 30 dias (era 7)
     
     # Public URLs

@@ -77,17 +77,95 @@ async def rate_limit_exception_handler(request: Request, exc: RateLimitExceeded)
 
     return response
 
-# CORS Middleware - DEVELOPMENT: Allow all origins
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=False,
-    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
-    allow_headers=["*"],
-    expose_headers=["Content-Length", "Content-Type", "X-Total-Count"],
-    max_age=3600,
-)
-print("⚠️ CORS: Allowing all origins for DEVELOPMENT ONLY")
+# CORS Middleware - Configured for maximum compatibility with credentials
+cors_origins = settings.get_cors_origins()
+
+# Log CORS configuration for debugging
+if settings.DEBUG:
+    print(f"🔒 CORS Origins: {cors_origins}")
+    print(f"🔒 CORS Allow All: {settings.CORS_ALLOW_ALL}")
+    print(f"🔒 CORS Origin Env: {settings.CORS_ORIGIN}")
+    print(f"🔒 Frontend URL: {settings.FRONTEND_URL}")
+    print(f"🔒 Public URL: {settings.PUBLIC_URL}")
+
+# Filter out wildcards - they don't work with credentials
+filtered_origins = [origin for origin in cors_origins if origin != "*"]
+
+# If origins contains "*" or no valid origins, handle it differently
+if cors_origins == ["*"] or not filtered_origins:
+    # SECURITY WARNING: Allow all origins only in development
+    # This configuration is NOT suitable for production
+    if settings.DEBUG and settings.ENVIRONMENT != "production":
+        app.add_middleware(
+            CORSMiddleware,
+            allow_origins=["*"],
+            allow_credentials=False,  # Cannot use credentials with "*"
+            allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+            allow_headers=[
+                "Content-Type",
+                "Authorization",
+                "X-Requested-With",
+                "Accept",
+                "Origin",
+            ],
+            expose_headers=[
+                "Content-Length",
+                "Content-Type",
+            ],
+            max_age=300,  # Shorter cache for development
+        )
+        if settings.DEBUG:
+            print("⚠️ CORS: Using wildcard (*) - DEVELOPMENT ONLY")
+    else:
+        # Production fallback: Force specific origins
+        production_origins = [
+            "https://atendo.website",
+            "https://www.atendo.website"
+        ]
+        app.add_middleware(
+            CORSMiddleware,
+            allow_origins=production_origins,
+            allow_credentials=True,
+            allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+            allow_headers=[
+                "Content-Type",
+                "Authorization",
+                "X-Requested-With",
+                "Accept",
+            ],
+            expose_headers=["Content-Length", "Content-Type"],
+            max_age=86400,  # 24 hours cache for production
+        )
+        print("🔒 CORS: Production fallback - using hardcoded safe origins")
+    if settings.DEBUG:
+        print("⚠️ CORS: Using wildcard (*) - credentials disabled")
+else:
+    # Specific origins (production-ready) - credentials enabled
+    middleware_kwargs = {
+        "allow_origins": filtered_origins,
+        "allow_credentials": True,
+        "allow_methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+        "allow_headers": [
+            "Accept",
+            "Content-Type",
+            "Authorization",
+            "X-Requested-With",
+            "X-CSRFToken",
+            "Origin",
+        ],
+        "expose_headers": [
+            "Content-Length",
+            "Content-Type",
+            "X-Total-Count",
+        ],
+        "max_age": 3600,
+    }
+    
+    # Production-ready - no ngrok regex needed
+    if settings.DEBUG:
+        print(f"✅ CORS: Using {len(filtered_origins)} explicit origins - credentials enabled")
+    
+    app.add_middleware(CORSMiddleware, **middleware_kwargs)
 
 # GZip Middleware for response compression
 app.add_middleware(GZipMiddleware, minimum_size=1000)

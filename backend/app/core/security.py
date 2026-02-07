@@ -123,10 +123,12 @@ def create_access_token(
         expire = datetime.utcnow() + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     
     # Add RBAC fields to token payload
+    import time as _time
     to_encode.update({
         "exp": expire,
         "type": "access",
-        "scope": scope
+        "scope": scope,
+        "iat": to_encode.get("iat", int(_time.time()))
     })
     
     # Add SaaS role if provided
@@ -149,7 +151,8 @@ def create_refresh_token(data: dict) -> str:
     to_encode = data.copy()
     expire = datetime.utcnow() + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS)
     
-    to_encode.update({"exp": expire, "type": "refresh"})
+    import time as _time
+    to_encode.update({"exp": expire, "type": "refresh", "iat": int(_time.time())})
     encoded_jwt = jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
     
     return encoded_jwt
