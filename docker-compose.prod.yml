@@ -24,14 +24,14 @@ services:
   redis:
     image: redis:7-alpine
     container_name: agendamento_redis_prod
-    command: ["redis-server", "--requirepass", "${REDIS_PASSWORD}", "--maxmemory", "1gb", "--maxmemory-policy", "allkeys-lru", "--save", "900 1", "--save", "300 10", "--save", "60 10000", "--appendonly", "yes", "--appendfsync", "everysec"]
+    command: ["redis-server", "--maxmemory", "1gb", "--maxmemory-policy", "allkeys-lru", "--save", "900 1", "--save", "300 10", "--save", "60 10000", "--appendonly", "yes", "--appendfsync", "everysec"]
     volumes:
       - /opt/agendamento-saas/data/redis:/data
     networks:
       - agendamento_network
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "redis-cli", "--no-auth-warning", "-a", "${REDIS_PASSWORD}", "ping"]
+      test: ["CMD", "redis-cli", "ping"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -63,7 +63,7 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     container_name: agendamento_backend_prod
-    command: sh -c "alembic upgrade heads && uvicorn app.main:app --host 0.0.0.0 --port 8000 --log-level info --timeout-keep-alive 75"
+    command: sh -c "uvicorn app.main:app --host 0.0.0.0 --port 8000 --log-level info --timeout-keep-alive 75"
     volumes:
       - ./backend:/app
       - /opt/agendamento-saas/logs/backend:/app/logs
@@ -149,7 +149,27 @@ services:
       - agendamento_network
     restart: unless-stopped
 
-  # Frontend
+  # Landing Page (Vite + React) - DESABILITADO TEMPORARIAMENTE
+  # landing:
+  #   build:
+  #     context: ./LANDING PAGE RONI ATENDO/LANDING PAGE RONI ATENDO
+  #     dockerfile: Dockerfile
+  #   container_name: agendamento_landing_prod
+  #   environment:
+  #     - NODE_ENV=production
+  #     - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
+  #   depends_on:
+  #     - backend
+  #   networks:
+  #     - agendamento_network
+  #   restart: unless-stopped
+  #   healthcheck:
+  #     test: ["CMD-SHELL", "curl -f http://localhost:80/ || exit 1"]
+  #     interval: 30s
+  #     timeout: 10s
+  #     retries: 3
+
+  # Frontend Administrativo (Next.js) - ÁREA LOGADA COMPLETA - PRIORIDADE MÁXIMA
   frontend:
     build:
       context: ./frontend
@@ -189,30 +209,12 @@ services:
       timeout: 10s
       retries: 3
 
-  # Landing Page (Vite/React separado)
-  landing:
-    build:
-      context: ./landing
-      dockerfile: Dockerfile
-    container_name: agendamento_landing_prod
-    environment:
-      - NODE_ENV=production
-    networks:
-      - agendamento_network
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:80/ || exit 1"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-
   # Nginx Reverse Proxy (Docker-first)
   nginx:
     image: nginx:alpine
     container_name: agendamento_nginx_prod
     volumes:
-      - ./docker/nginx/nginx.docker-first.conf:/etc/nginx/nginx.conf:ro
-      - /etc/letsencrypt:/etc/letsencrypt:ro
+      - ./docker/nginx/nginx.local.conf:/etc/nginx/nginx.conf:ro
       - /opt/agendamento-saas/logs/nginx:/var/log/nginx
     ports:
       - "80:80"

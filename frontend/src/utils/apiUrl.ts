@@ -126,7 +126,18 @@ export const toAbsoluteImageUrl = (url?: string | null): string | null => {
     return trimmed
   }
 
-  const base = getApiUrl()
-  if (trimmed.startsWith('/')) return `${base}${trimmed}`
-  return `${base}/${trimmed}`
+  // Para arquivos estáticos (uploads), usar a URL atual do navegador
+  // não a URL do backend API
+  let baseUrl: string
+  
+  if (typeof window !== 'undefined') {
+    // Client-side: usar a origem atual (http://localhost ou https://site.com)
+    baseUrl = `${window.location.protocol}//${window.location.host}`
+  } else {
+    // Server-side: usar NEXT_PUBLIC_URL ou fallback para getApiUrl()
+    baseUrl = process.env.NEXT_PUBLIC_URL || getApiUrl()
+  }
+
+  if (trimmed.startsWith('/')) return `${baseUrl}${trimmed}`
+  return `${baseUrl}/${trimmed}`
 }

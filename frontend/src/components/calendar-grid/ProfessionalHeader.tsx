@@ -2,6 +2,7 @@
 
 import React from 'react'
 import { CalendarProfessional } from '@/types/calendar'
+import { toAbsoluteImageUrl } from '@/utils/apiUrl'
 
 interface ProfessionalHeaderProps {
   professional: CalendarProfessional
@@ -10,6 +11,7 @@ interface ProfessionalHeaderProps {
 
 export function ProfessionalHeader({ professional, onClick }: ProfessionalHeaderProps) {
   const initial = professional.full_name.trim().charAt(0).toUpperCase() || 'A'
+  const avatarUrl = toAbsoluteImageUrl(professional.avatar_url)
 
   return (
     <div className="flex-1 min-w-[200px] border-r p-3 flex flex-col items-center justify-center">
@@ -19,9 +21,9 @@ export function ProfessionalHeader({ professional, onClick }: ProfessionalHeader
         className="mb-2 h-12 w-12 rounded-full bg-gray-200 overflow-hidden flex items-center justify-center hover:ring-2 hover:ring-primary/30 transition-all"
         title={professional.full_name}
       >
-        {professional.avatar_url ? (
+        {avatarUrl ? (
           <img
-            src={professional.avatar_url}
+            src={avatarUrl}
             alt={professional.full_name}
             className="h-full w-full object-cover"
             onError={(e) => {

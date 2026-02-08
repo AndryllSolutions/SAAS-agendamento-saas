@@ -157,7 +157,7 @@ export default function Sidebar() {
     { 
       section: 'CADASTROS',
       items: [
-        { icon: Users, label: 'Clientes', href: '/clients', show: permissions.canManageUsers() },
+        { icon: Users, label: 'Clientes', href: '/clients', show: permissions.canManageClients() },
         { icon: Briefcase, label: 'Serviços', href: '/services', show: permissions.canManageServices() },
         { icon: ShoppingBag, label: 'Produtos', href: '/products', show: permissions.canManageServices() },
         { icon: UserCheck, label: 'Profissionais', href: '/professionals', show: permissions.canManageUsers() },
@@ -188,7 +188,7 @@ export default function Sidebar() {
       section: 'CONTROLE',
       items: [
         { icon: Target, label: 'Metas', href: '/goals', show: permissions.canManagePayments() },
-        { icon: BarChart3, label: 'Relatórios', href: '/reports', show: permissions.canManagePayments() },
+        { icon: BarChart3, label: 'Relatórios', href: '/reports', show: permissions.canViewReports() },
         { icon: FileText, label: 'Anamneses', href: '/anamneses', show: permissions.canManagePayments() },
         { icon: Truck, label: 'Compras', href: '/purchases', show: permissions.canManagePayments() },
         { icon: Gift, label: 'Cashback', href: '/cashback', show: permissions.canManagePayments(), feature: 'cashback', requiredPlan: 'premium' },

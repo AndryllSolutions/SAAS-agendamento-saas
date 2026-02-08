@@ -384,6 +384,9 @@ async def root():
 # Include API router
 app.include_router(api_router, prefix="/api/v1")
 
+# Include public API router without /api/v1 prefix for public access
+app.include_router(api_router, prefix="/api")
+
 app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 
 

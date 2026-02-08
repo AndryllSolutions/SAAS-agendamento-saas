@@ -5,6 +5,7 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import { Calendar, Clock, Users, Ban } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useAgendaStore } from '@/store/agendaStore'
+import { toAbsoluteImageUrl } from '@/utils/apiUrl'
 
 interface Professional {
   id: number
@@ -168,8 +169,8 @@ export function CalendarGridEnhanced({
                     className="flex min-w-[300px] items-center gap-3 hover:bg-slate-50 rounded-lg p-3 transition-colors cursor-pointer group"
                   >
                     <div className="h-12 w-12 overflow-hidden rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-semibold">
-                      {professional.avatar_url ? (
-                        <img src={professional.avatar_url} alt={professional.full_name} className="h-full w-full object-cover" />
+                      {toAbsoluteImageUrl(professional.avatar_url) ? (
+                        <img src={toAbsoluteImageUrl(professional.avatar_url) as string} alt={professional.full_name} className="h-full w-full object-cover" />
                       ) : (
                         <span>{professional.full_name.charAt(0).toUpperCase()}</span>
                       )}
