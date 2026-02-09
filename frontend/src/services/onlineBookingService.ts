@@ -12,6 +12,7 @@ export interface OnlineBookingConfig {
   public_name?: string
   public_description?: string
   logo_url?: string
+  public_slug?: string
   
   // Endereço
   use_company_address?: boolean

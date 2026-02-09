@@ -1,6 +1,6 @@
 'use client'
 
-import { Percent, HelpCircle, Plus } from 'lucide-react'
+import { Percent } from 'lucide-react'
 
 interface Employee {
   id: number
@@ -11,75 +11,133 @@ interface ComissoesConfigSectionProps {
   onUpdate: (hasChanges: boolean) => void
 }
 
+const radioOptions: Record<string, { id: string; label: string }[]> = {
+  dateFilter: [
+    { id: 'competencia', label: 'Data de competência' },
+    { id: 'disponibilidade', label: 'Data de disponibilidade' }
+  ],
+  commandType: [
+    { id: 'todas', label: 'Todas as comandas' },
+    { id: 'finalizadas', label: 'Somente finalizadas' }
+  ],
+  fees: [
+    { id: 'proporcional', label: 'Proporcional ao comissionamento' },
+    { id: 'estabelecimento', label: 'Estabelecimento arca com 100%' },
+    { id: 'profissional', label: 'Profissional arca com 100%' }
+  ],
+  discounts: [
+    { id: 'proporcional', label: 'Proporcional ao comissionamento' },
+    { id: 'estabelecimento', label: 'Estabelecimento arca com 100%' },
+    { id: 'profissional', label: 'Profissional arca com 100%' }
+  ],
+  extraCosts: [
+    { id: 'desconta', label: 'Desconta' },
+    { id: 'nao-desconta', label: 'Não desconta' }
+  ],
+  products: [
+    { id: 'nao-descontar', label: 'Não descontar' },
+    { id: 'custo', label: 'Preço de custo' },
+    { id: 'venda', label: 'Preço de venda' },
+    { id: 'profissional', label: 'Preço para profissional' }
+  ],
+  deductProducts: [
+    { id: 'comissao', label: 'Comissão do profissional' },
+    { id: 'servico', label: 'Serviço' }
+  ],
+  showGrossReport: [
+    { id: 'sim', label: 'Sim' },
+    { id: 'nao', label: 'Não' }
+  ]
+}
+
 export default function ComissoesConfigSection({ employee, onUpdate }: ComissoesConfigSectionProps) {
+  const handleChange = () => onUpdate(true)
+
+  const renderRadioGroup = (name: string, options: { id: string; label: string }[], defaultValue?: string) => (
+    <div className="space-y-2">
+      {options.map(option => (
+        <label key={option.id} className="flex items-center space-x-2 text-sm text-gray-700">
+          <input
+            type="radio"
+            name={name}
+            value={option.id}
+            defaultChecked={defaultValue ? defaultValue === option.id : undefined}
+            onChange={handleChange}
+            className="text-blue-600"
+          />
+          <span>{option.label}</span>
+        </label>
+      ))}
+    </div>
+  )
+
   return (
     <div className="p-6">
-      <div className="max-w-4xl">
-        <div className="mb-6">
-          <h3 className="text-lg font-medium text-gray-900 mb-2 flex items-center">
+      <div className="max-w-5xl space-y-6">
+        <div className="space-y-2">
+          <h3 className="text-lg font-semibold text-gray-900 flex items-center">
             <Percent className="w-5 h-5 mr-2" />
-            Configurar Comissões
+            Configurar comissões
           </h3>
           <p className="text-sm text-gray-500">
-            Configure como as comissões serão calculadas para este profissional.
+            Ajuste filtros, taxas e descontos exatamente como exibido no layout atual do sistema.
           </p>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Configurações de Comissão */}
-          <div className="space-y-6">
+        <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
+          <div className="grid gap-6 md:grid-cols-2">
             <div>
-              <h4 className="font-medium text-gray-900 mb-4">Tipo de Comissão</h4>
-              <div className="space-y-3">
-                <label className="flex items-center space-x-3">
-                  <input type="radio" name="commission_type" value="percentage" className="h-4 w-4 text-blue-600" />
-                  <span className="text-sm text-gray-700">Percentual sobre o valor do serviço</span>
-                  <HelpCircle className="w-4 h-4 text-gray-400 cursor-help" />
-                </label>
-                <label className="flex items-center space-x-3">
-                  <input type="radio" name="commission_type" value="fixed" className="h-4 w-4 text-blue-600" />
-                  <span className="text-sm text-gray-700">Valor fixo por serviço</span>
-                  <HelpCircle className="w-4 h-4 text-gray-400 cursor-help" />
-                </label>
-                <label className="flex items-center space-x-3">
-                  <input type="radio" name="commission_type" value="mixed" className="h-4 w-4 text-blue-600" />
-                  <span className="text-sm text-gray-700">Misto (percentual + valor fixo)</span>
-                  <HelpCircle className="w-4 h-4 text-gray-400 cursor-help" />
-                </label>
-              </div>
+              <p className="text-sm font-semibold text-gray-900 mb-2">Filtro por data:</p>
+              {renderRadioGroup('date_filter', radioOptions.dateFilter, 'competencia')}
             </div>
-
             <div>
-              <h4 className="font-medium text-gray-900 mb-4">Base de Cálculo</h4>
-              <div className="space-y-3">
-                <label className="flex items-center space-x-3">
-                  <input type="radio" name="calculation_base" value="gross" className="h-4 w-4 text-blue-600" />
-                  <span className="text-sm text-gray-700">Valor bruto do serviço</span>
-                </label>
-                <label className="flex items-center space-x-3">
-                  <input type="radio" name="calculation_base" value="net" className="h-4 w-4 text-blue-600" />
-                  <span className="text-sm text-gray-700">Valor líquido (após descontos)</span>
-                </label>
-              </div>
+              <p className="text-sm font-semibold text-gray-900 mb-2">Tipo de comanda:</p>
+              {renderRadioGroup('command_type', radioOptions.commandType, 'todas')}
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-gray-900 mb-2">Taxas:</p>
+              {renderRadioGroup('fees', radioOptions.fees, 'proporcional')}
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-gray-900 mb-2">Descontos:</p>
+              {renderRadioGroup('discounts', radioOptions.discounts, 'proporcional')}
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-gray-900 mb-2">Custo adicional dos serviços:</p>
+              {renderRadioGroup('extra_costs', radioOptions.extraCosts, 'desconta')}
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-gray-900 mb-2">Produtos consumidos:</p>
+              {renderRadioGroup('products', radioOptions.products, 'nao-descontar')}
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-gray-900 mb-2">Descontar produtos consumidos:</p>
+              {renderRadioGroup('deduct_products', radioOptions.deductProducts, 'comissao')}
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-gray-900 mb-2">Exibir valor bruto no relatório de comissões:</p>
+              {renderRadioGroup('show_gross', radioOptions.showGrossReport, 'sim')}
             </div>
           </div>
 
-          {/* Texto de Recebimento */}
-          <div>
-            <h4 className="font-medium text-gray-900 mb-4">Recebimento de Comissão</h4>
+          <div className="mt-8">
+            <p className="text-sm font-semibold text-gray-900 mb-2">Recebimento de comissão:</p>
             <textarea
-              rows={6}
+              rows={4}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder="Descreva como e quando as comissões serão pagas..."
+              placeholder="Descreva como e quando este profissional recebe a comissão."
+              onChange={handleChange}
             />
-            
-            <div className="mt-4 flex flex-wrap gap-2">
-              <button className="px-3 py-1 text-xs bg-blue-100 text-blue-800 rounded-full hover:bg-blue-200">
-                + Valor
-              </button>
-              <button className="px-3 py-1 text-xs bg-blue-100 text-blue-800 rounded-full hover:bg-blue-200">
-                + Nome da empresa
-              </button>
+            <div className="mt-3 flex flex-wrap gap-2">
+              {['Valor', 'Nome da empresa'].map(token => (
+                <button
+                  key={token}
+                  onClick={handleChange}
+                  className="px-3 py-1 text-xs text-blue-700 bg-blue-50 rounded-full border border-blue-100"
+                >
+                  {token}
+                </button>
+              ))}
             </div>
           </div>
         </div>

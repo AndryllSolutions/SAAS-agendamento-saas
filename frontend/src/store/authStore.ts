@@ -53,6 +53,7 @@ interface AuthState {
   isAuthenticated: boolean;
   isLoading: boolean;
   error: string | null;
+  hasHydrated: boolean;
   
   // Actions
   setAuth: (user: User, accessToken: string, refreshToken: string) => void;
@@ -61,6 +62,7 @@ interface AuthState {
   refreshAccessToken: () => Promise<boolean>;
   clearError: () => void;
   checkAuth: () => Promise<boolean>;
+  setHasHydrated: (hydrated: boolean) => void;
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -72,6 +74,7 @@ export const useAuthStore = create<AuthState>()(
       isAuthenticated: false,
       isLoading: false,
       error: null,
+      hasHydrated: false,
       
       setAuth: (user, accessToken, refreshToken) => {
         const tokenData = jwtDecode<TokenPayload>(accessToken);
@@ -220,6 +223,8 @@ export const useAuthStore = create<AuthState>()(
       
       clearError: () => set({ error: null }),
       
+      setHasHydrated: (hydrated: boolean) => set({ hasHydrated: hydrated }),
+      
       checkAuth: async () => {
         const { accessToken, refreshAccessToken } = get();
         
@@ -250,6 +255,11 @@ export const useAuthStore = create<AuthState>()(
         isAuthenticated: state.isAuthenticated,
       }),
       onRehydrateStorage: () => (state) => {
+        // Marcar que a hidratação foi concluída
+        if (state) {
+          state.setHasHydrated(true);
+        }
+        
         if (!state?.accessToken) return;
 
         try {

@@ -55,6 +55,7 @@ from app.api.v1.endpoints import (
     evolution_whatsapp,
     professional_schedule_overrides,
     professional_vouchers,
+    public,
 )
 
 api_router = APIRouter()
@@ -115,3 +116,4 @@ api_router.include_router(evolution_webhook.router, prefix="/evolution/webhook",
 api_router.include_router(evolution_whatsapp.router, prefix="/evolution/whatsapp", tags=["Evolution WhatsApp"])
 api_router.include_router(professional_schedule_overrides.router, prefix="/schedule-overrides", tags=["Schedule Overrides"])
 api_router.include_router(professional_vouchers.router, prefix="/vouchers", tags=["Vouchers"])
+api_router.include_router(public.router, prefix="/public", tags=["Public Booking"])

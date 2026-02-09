@@ -10,17 +10,17 @@ from app.models.base import BaseModel
 
 class CommandStatus(str, enum.Enum):
     """Command status"""
-    OPEN = "open"
-    IN_PROGRESS = "in_progress"
-    FINISHED = "finished"
-    CANCELLED = "cancelled"
+    OPEN = "OPEN"
+    IN_PROGRESS = "IN_PROGRESS"
+    FINISHED = "FINISHED"
+    CANCELLED = "CANCELLED"
 
 
 class CommandItemType(str, enum.Enum):
     """Command item type"""
-    SERVICE = "service"
-    PRODUCT = "product"
-    PACKAGE = "package"
+    SERVICE = "SERVICE"
+    PRODUCT = "PRODUCT"
+    PACKAGE = "PACKAGE"
 
 
 class Command(BaseModel):

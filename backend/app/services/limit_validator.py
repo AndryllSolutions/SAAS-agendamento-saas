@@ -33,7 +33,8 @@ class LimitValidator:
         # Contar profissionais existentes
         current_count = db.query(func.count(User.id)).filter(
             User.company_id == company.id,
-            User.is_active == True
+            User.is_active == True,
+            User.role == 'PROFESSIONAL'
         ).scalar() or 0
         
         # Verificar limite

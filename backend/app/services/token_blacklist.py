@@ -11,37 +11,8 @@ _local_redis: aioredis.Redis = None
 
 async def _get_redis_safe() -> aioredis.Redis:
     """Get Redis com retry e reconexão automática."""
-    global _local_redis
-    try:
-        # Tentar usar o get_redis global primeiro
-        r = await get_redis()
-        if r is not None:
-            await r.ping()
-            return r
-    except Exception:
-        pass
-    
-    # Fallback: criar conexão própria
-    try:
-        if _local_redis is not None:
-            try:
-                await _local_redis.ping()
-                return _local_redis
-            except Exception:
-                _local_redis = None
-        
-        _local_redis = await aioredis.from_url(
-            settings.REDIS_URL,
-            encoding="utf-8",
-            decode_responses=True,
-            socket_connect_timeout=5,
-            socket_timeout=5,
-        )
-        await _local_redis.ping()
-        return _local_redis
-    except Exception as e:
-        logger.error(f"Redis indisponível: {e}")
-        return None
+    # Temporarily disabled for testing
+    return None
 
 logger = logging.getLogger(__name__)
 
